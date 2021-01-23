@@ -81,7 +81,7 @@ classdef load_data
             sortrows(country_counts,-2)
         end
         function obj = get_TIPI_INDCOL_scores(obj) 
-            
+           % 
         end
     end
 end
