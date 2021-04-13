@@ -11,7 +11,8 @@ obj.dataTable = readtable('~/Desktop/ccstudy/ccsData.csv','Encoding','UTF-8');
 %% Number of participants
 N = height(obj.dataTable);
 disp(['Total number of responses: ' num2str(N)]);
-
+unique_c = length(unique(obj.dataTable{:,'Country_childhood'}));
+disp(['Number of countries: ' num2str(unique_c)]);
 %Display Number of participants per LANGUAGE
 language_counts = groupcounts(obj.dataTable,'language');
 language_counts.language = string(language_counts.language);
@@ -45,10 +46,10 @@ xlabel('Languages');ylabel('Age');
 title('Boxplots per language');
 %% Age (countries)
 disp('Age distribution per COUNTRY OF ORIGIN')
-disp('Note: Only including countries with 20 or more participants')
+disp('Note: Only including countries with 30 or more participants')
 countries_N = groupcounts(obj.dataTable,'Country_childhood');
             %find countries with enough participants
-countries_N = table2array(countries_N(table2array(countries_N(:,2))>=20,1));
+countries_N = table2array(countries_N(table2array(countries_N(:,2))>=30,1));
 %Find indexes of countries with enough participants
 all_idx = cellfun(@(x) find(strcmp(x, obj.dataTable.Country_childhood)),...
     countries_N, 'UniformOutput', false);
@@ -69,8 +70,6 @@ disp(array2table(stats_c,'VariableNames',{'Mean','SD'},'RowNames',countries_N))
 %%
 disp('Boxplots per country')
 boxplot(obj.dataTable.Age(idx_c),obj.dataTable.Country_childhood(idx_c))
-xlabel('Countries');ylabel('Age');
+xlabel('Countries');xtickangle(45); ylabel('Age');
 title('Boxplots per Country');
-%options_doc_nocode.format = 'pdf';
-%options_doc_nocode.showCode = false;
-%publish('recruitment_update.m',options_doc_nocode);
+%publish('recruitment_update.m','format','pdf','showCode',false);

@@ -1,7 +1,7 @@
 classdef load_data
     %Load data
     %example obj = load_data.load_data('~/Desktop/ccstudy/responses_pilot/Music Listening Habits.csv')
-    
+
     properties
         dataPath
         translationsPath = '~/Desktop/ccstudy/Translations pilot/Translations_MLH.xlsx'
@@ -9,8 +9,11 @@ classdef load_data
         discardMissingData = 1; %Discard responses with missing data
         genderLabels = {'Female','Male','Other'};
         createExcel = 1; %Create excel file with preprocessed data;
+        showPlots = 0; %Display plots and tables
+        durationThr = 4; %Duration Threshold to exclude responses (in minutes)
+        excludeShortResponses = 1; %Exclude responses below duration threshold
+        excludeRepetativeResponses = 1; %Exclude responses with repetative answers
     end
-    
     methods
         function obj = load_data(dataPath)
             if nargin == 0
@@ -22,10 +25,18 @@ classdef load_data
             if obj.discardMissingData ==1
                 obj = discard_missing_data(obj);
             end
-            obj = count_participants(obj);
-            obj = age_distribution(obj);
+            obj = survey_duration(obj);
+            if  obj.excludeRepetativeResponses
+                obj = responderVariability(obj);
+            end
+            if obj.showPlots == 1
+                obj = count_participants(obj);
+                obj = age_distribution(obj);
+                obj = gender_distribution(obj);
+            end
             if obj.createExcel==1
                 writetable(obj.dataTable,'ccsData.csv','Encoding','UTF-8')
+                dataTable = obj.dataTable; save('ccsData','dataTable');
             end
         end
         
@@ -75,7 +86,6 @@ classdef load_data
             %correct Age
             obj.dataTable.Age = obj.dataTable.Age+9;
             %correct Gender
-            obj.genderLabels
             for k = 1:height(obj.dataTable)
                 if obj.dataTable.GenderCode(k)==1
                     obj.dataTable.Gender{k} = obj.genderLabels(1);
@@ -152,6 +162,43 @@ classdef load_data
         end
         function obj = gender_distribution(obj)
             gender_N = groupcounts(obj.dataTable,'Gender');
+        end
+        function obj = survey_duration(obj)
+            obj.dataTable.Duration = minutes(obj.dataTable{:,'EndDate'} - ...
+                obj.dataTable{:,'StartDate'});
+            %exclude responses above 30 minutes
+            duration = obj.dataTable.Duration(obj.dataTable.Duration<30);
+            figure,histogram(duration);
+            xlabel('Duration in minutes'); ylabel('Number of responses')
+            title('Survey Duration')
+            
+            %med = median(duration);
+            %MAD = 1.4826*median(abs(duration-med))*2; %Median absolute deviation threshold
+            %outlier = isoutlier(obj.dataTable.Duration);
+            %outlier = obj.dataTable.Duration(outlier & obj.dataTable.Duration<med);
+            %obj.dataTable(~)
+            if obj.excludeShortResponses
+                disp(['Excluding ' num2str(sum(obj.dataTable.Duration<obj.durationThr)) ...
+                    ' responses for short duration']);
+                obj.dataTable = obj.dataTable(~(obj.dataTable.Duration<obj.durationThr),:);
+            end
+        end
+        function obj = responderVariability(obj)
+            for i=1:size(obj.dataTable)
+                %HARDCODED LOCATION OF EMOTIONS
+                responderVariability(i) = std(table2array(obj.dataTable(i,23:55)));
+            end
+            figure,histogram(responderVariability)
+            xlabel('Standard deviation')
+            ylabel('Number of responders')
+            title('Standard deviation of emotion ratings for each responder')
+            %isoutlier(responderVariability)
+            MAD_limit = 1.4826*median(abs(responderVariability-...
+                median(responderVariability)))*3; %Median Absolute deviation formula
+            %find responses with LOW variability
+            outliers_idx = responderVariability<median(responderVariability)-MAD_limit;
+            obj.dataTable = obj.dataTable(~outliers_idx,:);
+            disp(['Excluding ' num2str(sum(outliers_idx)) ' responses for low variability']);
         end
     end
 end
