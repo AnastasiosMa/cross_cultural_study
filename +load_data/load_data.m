@@ -51,17 +51,17 @@ classdef load_data
             reason_track = {'Track_Background','Track_Memories','Track_HaveFun',...
                 'Track_MusicsEmotion','Track_ChangeMood','Track_ExpressYourself','Track_Connected'};
             track_info = {'Artist','Track','Album','Link'};
-            emolabels = [obj.dataTable.Properties.VariableNames(23:56), {'LyricsImportance'}'];
+            emolabels = [obj.dataTable.Properties.VariableNames(16:49), {'LyricsImportance'}'];
             demographics = {'Age','GenderCode','Childhood','Adulthood','Residence',...
                 'Identity','Education','OtherEducation','Musicianship',...
                 'Employment','OtherEmployment','EconomicSituation','MusicWellBeing'};
-            varLabels = [firstrowNames(1:11), reason_music, track_info, emolabels,...
-                reason_track, {'Open-ended'}, demographics, obj.dataTable.Properties.VariableNames(79:end)];
+            varLabels = [firstrowNames(1:4), reason_music, track_info, emolabels,...
+                reason_track, {'Open-ended'}, demographics, obj.dataTable.Properties.VariableNames(72:end)];
             obj.dataTable.Properties.VariableNames = varLabels;
         end
         function obj = correct_country_age_gender(obj)
             %HARDCODED LOCATION OF COUNTRIES
-            countryIdx = obj.dataTable{:,68:71};
+            countryIdx = obj.dataTable{:,61:64};
             language = obj.dataTable{:,'language'};
             countryCodes = readtable(obj.translationsPath, 'Sheet','Country list codes');
             language_abbr = {'en','fi','el','lt','es','tr','ru','zh-tw','pt','fr','de'};
@@ -187,7 +187,7 @@ classdef load_data
         function obj = responderVariability(obj)
             for i=1:size(obj.dataTable)
                 %HARDCODED LOCATION OF EMOTIONS
-                responderVariability(i) = std(table2array(obj.dataTable(i,23:55)));
+                responderVariability(i) = std(table2array(obj.dataTable(i,16:48)));
             end
             figure,histogram(responderVariability)
             xlabel('Standard deviation')
