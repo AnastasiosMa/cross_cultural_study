@@ -1,10 +1,10 @@
 classdef load_data
     %Load data
-    %example obj = load_data.load_data('~/Desktop/ccstudy/responses_pilot/Music Listening Habits.csv')
+    %example obj = load_data.load_data('responses_pilot/Music Listening Habits.csv')
 
     properties
         dataPath
-        translationsPath = '~/Desktop/ccstudy/Translations pilot/Translations_MLH.xlsx'
+        translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable
         discardMissingData = 1; %Discard responses with missing data
         genderLabels = {'Female','Male','Other'};
@@ -16,6 +16,7 @@ classdef load_data
     end
     methods
         function obj = load_data(dataPath)
+            warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
             if nargin == 0
                 dataPath = [];
             end
