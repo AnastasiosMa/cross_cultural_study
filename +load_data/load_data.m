@@ -40,7 +40,7 @@ classdef load_data
                 dataTable = obj.dataTable; save('ccsData','dataTable');
             end
         end
-        
+
         function obj = get_variable_names(obj)
             obj.dataTable = readtable(obj.dataPath,'HeaderLines',1,'Encoding','UTF-8');
             firstrowNames = readtable(obj.dataPath);
@@ -138,7 +138,7 @@ classdef load_data
             boxplot(obj.dataTable.Age,obj.dataTable.language)
             xlabel('Languages');ylabel('Age');
             title('Boxplots per language');
-            
+
             countries_N = groupcounts(obj.dataTable,'Country_childhood');
             %find countries with enough participants
             countries_N = table2array(countries_N(table2array(countries_N(:,2))>=20,1));
@@ -155,7 +155,7 @@ classdef load_data
                 title([countries_N])
             end
             disp(array2table(stats_c,'VariableNames',{'Mean','SD'},'RowNames',countries_N))
-            
+
             figure
             boxplot(obj.dataTable.Age(idx_c),obj.dataTable.Country_childhood(idx_c))
             xlabel('Countries');ylabel('Age');
