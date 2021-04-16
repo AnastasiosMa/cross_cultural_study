@@ -25,32 +25,42 @@ classdef mlh_emo_anovas < load_data.load_data
                             'Sometimes'
                             'Quite often'
                             'Very often'};
-            Var = 'Country_childhood';
+            Var = 'AgeCategory';
             N = 100;
-            reducedTable = stats.mlh_emo_anovas.filterMostFrequentCategories(obj.dataTable,Var,N);
+            %reducedTable = stats.mlh_emo_anovas.filterMostFrequentCategories(obj.dataTable,Var,N);
+            reducedTable = obj.dataTable;
             selectedGroupingVarLevels = unique(reducedTable.(Var));
-            disp(groupcounts(reducedTable,Var))
+            g = groupcounts(reducedTable,Var);
+            disp(g);
             tableFunctions = reducedTable(:,contains(reducedTable.Properties.VariableNames,'Music_'));
+            tableFunctionsNumeric = tableFunctions;
+            for k = 1:size(tableFunctions,2)
+                cats = categorical(tableFunctions{:,k},[1:numel(likertPoints)],likertPoints,'Ordinal',true);
+                tableFunctions.(tableFunctions.Properties.VariableNames{k}) = cats;
+            end
             for k = 1:size(tableFunctions,2)
                 disp(['***' upper(reasonLabels{k}) '***'])
-                [p tbl] = anova1(tableFunctions{:,k},reducedTable.(Var));
+                [p tbl] = anova1(tableFunctionsNumeric{:,k},reducedTable.(Var));
                 close
                 snapnow
                 reasonLabel = tableFunctions.Properties.VariableNames{k};
                 G = groupsummary(reducedTable,{Var,reasonLabel});
                 nLikertPoints = numel(likertPoints);
                 for j = 1:numel(selectedGroupingVarLevels)
-                    if sum(matches(G.(Var),selectedGroupingVarLevels{j})) ~= nLikertPoints
-                        availablePoints = G.(reasonLabel)(matches(G.(Var),selectedGroupingVarLevels{j}));
+                    if sum(matches(string(G.(Var)),string(selectedGroupingVarLevels(j)))) ~= nLikertPoints
+                        availablePoints = G.(reasonLabel)(matches(string(G.(Var)),string(selectedGroupingVarLevels(j))));
                         expectedPoints = 1:nLikertPoints;
                         C = setdiff(expectedPoints, availablePoints);
                         C = C(:);
-                        T = table(repelem({selectedGroupingVarLevels{j}},numel(C))',C,repelem(0,numel(C))','VariableNames',G.Properties.VariableNames);
+                        T = table(repelem(selectedGroupingVarLevels(j),numel(C))',C,repelem(0,numel(C))','VariableNames',G.Properties.VariableNames);
                         G = sortrows([G; T],{Var,reasonLabel});
+                        % here we want to put the rows back to how
+                        % they were
                     end
                 end
                 figure
-                bar(reshape(G.GroupCount,nLikertPoints,[])');
+                perc = G.GroupCount./repelem(g.GroupCount,nLikertPoints)*100;
+                bar(reshape(perc,nLikertPoints,[])');
                 xticklabels(string(selectedGroupingVarLevels));
                 title(reasonLabels{k},'Interpreter','None')
                 legend(likertPoints,'Location','NorthOutside','Orientation','Horizontal')
