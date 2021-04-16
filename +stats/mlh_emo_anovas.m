@@ -25,7 +25,7 @@ classdef mlh_emo_anovas < load_data.load_data
                             'Sometimes'
                             'Quite often'
                             'Very often'};
-            Var = 'AgeCategory';
+            Var = 'employmentLabels';
             N = 100;
             %reducedTable = stats.mlh_emo_anovas.filterMostFrequentCategories(obj.dataTable,Var,N);
             reducedTable = obj.dataTable;

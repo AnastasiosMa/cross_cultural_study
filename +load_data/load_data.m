@@ -8,8 +8,8 @@ classdef load_data
         discardMissingData = 1; %Discard responses with missing data
         genderLabels = {'Female','Male','Other'};
         musicianshipLabels = {'Nonmusician','Music-loving nonmusician','Amateur musician','Semiprofessional musician','Professional musician'};
-        educationLabels = {'Elementary school','High school','Vocational training','Bachelor''s degree','Master''s degree','Doctoral degree','Other','Prefer not to say'};
-        employmentLabels = {'Employed full-time', 'Employed part-time / casual', 'Self-employed', 'Student', 'Homemaker / caregiver', 'Retired', 'Currently out of work', 'Other', 'Prefer not to say'}
+        educationLabels = {'Elementary school','High school','Vocational training','Bachelor''s degree','Master''s degree','Doctoral degree','Other','Prefer not to say','NA'};
+        employmentLabels = {'Employed full-time', 'Employed part-time / casual', 'Self-employed', 'Student', 'Homemaker / caregiver', 'Retired', 'Currently out of work', 'Other', 'Prefer not to say','NA'}
         economicSituationLabels = {'Below Average','Average','Above Average'};
         createExcel = 1; %Create excel file with preprocessed data;
         showPlots = 0; %Display plots, tables, and text
@@ -105,11 +105,11 @@ classdef load_data
             Musicianship = categorical(obj.dataTable.Musicianship,[1:5],obj.musicianshipLabels);
             obj.dataTable = addvars(obj.dataTable,Musicianship(:),'NewVariableNames','musicianshipLabels');
             % education
-            % Education = categorical(obj.dataTable.Education,[0:8],obj.educationLabels);
-            % obj.dataTable = addvars(obj.dataTable,Education(:),'NewVariableNames','educationLabels');
+            Education = categorical(obj.dataTable.Education,[0:8],obj.educationLabels);
+            obj.dataTable = addvars(obj.dataTable,Education(:),'NewVariableNames','educationLabels');
             % employment
-            % Employment = categorical(obj.dataTable.Employment,[0:9],obj.employmentLabels);
-            % obj.dataTable = addvars(obj.dataTable,Employment(:),'NewVariableNames','employmentLabels');
+            Employment = categorical(obj.dataTable.Employment,[0:9],obj.employmentLabels);
+            obj.dataTable = addvars(obj.dataTable,Employment(:),'NewVariableNames','employmentLabels');
             % economic situation
             EconomicSituation = categorical(obj.dataTable.EconomicSituation,[1:3],obj.economicSituationLabels);
             obj.dataTable = addvars(obj.dataTable,EconomicSituation(:),'NewVariableNames','economicSituationLabels');
