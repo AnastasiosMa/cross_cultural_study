@@ -16,6 +16,8 @@ classdef load_data
         durationThr = 4; %Duration Threshold to exclude responses (in minutes)
         excludeShortResponses = 1; %Exclude responses below duration threshold
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
+        excludeResponsesFromFile = 1;
+        excludeResponsesPath = 'responses_pilot/faulty ids.xlsx';
     end
     methods
         function obj = load_data(dataPath)
@@ -32,6 +34,9 @@ classdef load_data
             obj = survey_duration(obj);
             if  obj.excludeRepetativeResponses
                 obj = responderVariability(obj);
+            end
+            if obj.excludeResponsesFromFile==1
+               obj = exclude_from_file(obj); 
             end
             if obj.showPlots == 1
                 obj = count_participants(obj);
@@ -225,6 +230,11 @@ classdef load_data
             if obj.showPlots == 1
                 disp(['Excluding ' num2str(sum(outliers_idx)) ' responses for low variability']);
             end
+        end
+        function obj = exclude_from_file(obj)
+           faultyIDs = table2array(readtable(obj.excludeResponsesPath));
+           [c,idx] = setdiff(table2array(obj.dataTable(:,'RespondentID')),faultyIDs');
+           obj.dataTable = obj.dataTable(idx,:);
         end
     end
 end
