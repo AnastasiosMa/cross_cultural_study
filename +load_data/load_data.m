@@ -366,7 +366,8 @@ classdef load_data
             disp(['Eta square: ' num2str(etaSquare)])
             disp('')
             disp('---GENDER')
-            %disp(['Standard Deviation of Gender ratios: ' num2str(bestGenderMetric)]);
+            disp('Gender metric: Mean Difference between gender ratios')
+            disp(['Gender metric: ' num2str(bestGenderMetric)]);
             end
             %create subtable
             g = groupcounts(obj.groupTable,obj.subgroupCategory);
