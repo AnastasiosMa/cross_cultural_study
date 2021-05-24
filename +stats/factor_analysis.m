@@ -1,46 +1,31 @@
 classdef factor_analysis < load_data.load_data
-    %example obj = stats.factor_analysis('~/Desktop/ccstudy/responses_pilot/Music Listening Habits.csv')
+    %example obj = stats.factor_analysis('~/Desktop/ccstudy/responses_pilot/Music Listening Habits.csv','AllResponses')
     
     properties
         emo
         emoLabels
-        alldataTable
         showPlotsFA = 1;
         distanceM = 'euclidean';
-        rawTable
-        filterByFrequency = 1; %reduce data for most frequent categories 
-        %(languages or countries)
-        filterCategory = 'language'; 
-        filterThreshold = 70; %filter threshold
-        categoryNames %category names (languages or countries names)
         removeLeastRatedTerms = 1;
         removalPercentage = .2;
+        removedEmotions
         removeEmoTermsManually = 0; %select manually emotions to remove
-        emoToRemove = {'Spirituality','Longing','Amusement','Security','Belonging'};
+        emoToRemove  % = {'Spirituality','Longing','Amusement','Security','Belonging'};
         %emoToRemove = {'Tension','Eroticism'};
         PCNum =5;%number of factors
-        selectSubgroups = 1;
-        
+        FAcoeff
     end   
     methods
-        function obj = factor_analysis(dataPath)
+        function obj = factor_analysis(dataPath,filterMethod)
             if nargin == 0
                 dataPath = [];
+                filterMethod = [];
             end
-            obj = obj@load_data.load_data(dataPath);
-            if obj.filterByFrequency==1
-               obj.alldataTable = obj.dataTable; 
-               obj.dataTable = stats.factor_analysis.filterMostFrequentCategories(...
-                    obj.dataTable,obj.filterCategory,obj.filterThreshold);
-                obj.categoryNames = table2array(unique(obj.dataTable(:,obj.filterCategory))); 
-            end
+            obj = obj@load_data.load_data(dataPath,filterMethod);
             %HARDCODED EMO locations
             obj.emo = obj.dataTable{:,16:48};
             obj.emoLabels = obj.dataTable.Properties.VariableNames(16:48);
             obj = correct_emoLabels(obj);
-            if obj.selectSubgroups ==1
-               obj = select_subgroups(obj); 
-            end
             if obj.removeEmoTermsManually==1
                 obj = removeEmotionTerms(obj);
             end
@@ -49,7 +34,7 @@ classdef factor_analysis < load_data.load_data
                 obj = hierarchical_clust(obj);
                 %obj = vif(obj);
             end
-            if obj.filterMostFrequentCountries==1
+            if ~strcmpi(obj.filterMethod,'AllResponses')
             obj = dendrogram_categories(obj);
             obj = cronbach_categories(obj);
             end
@@ -96,11 +81,11 @@ classdef factor_analysis < load_data.load_data
                 num2str(obj.PCNum) ' Pcs']);
         end
         function  obj = fa(obj)
-            [lambda, psi, ~, stats] = factoran(obj.emo,obj.PCNum,'Rotate','Varimax');
+            [obj.FAcoeff, psi, ~, stats] = factoran(obj.emo,obj.PCNum,'Rotate','Varimax');
             disp('*** FACTOR ANALYSIS (varimax rotation)***')
             if obj.showPlotsFA==1
                 figure
-                heatmap(lambda)
+                heatmap(obj.FAcoeff)
                 ax = gca; ax.YDisplayLabels = num2cell(obj.emoLabels);
                 title('Factor Loadings')
                 snapnow
@@ -145,9 +130,9 @@ classdef factor_analysis < load_data.load_data
         end
         function obj = dendrogram_categories(obj)            
             remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]);
-            for i = 1:length(obj.categoryNames)
-                d(:,i) = pdist(obj.emo(strcmpi(obj.categoryNames(i),...
-                    table2array(obj.dataTable(:,obj.filterCategory))),:)',obj.distanceM);
+            for i = 1:length(obj.subgroupNames)
+                d(:,i) = pdist(obj.emo(strcmpi(obj.subgroupNames(i),...
+                    table2array(obj.dataTable(:,obj.groupingCategory))),:)',obj.distanceM);
                 sqForm{i} = squareform(d(:,i));
                 sqForm{i} = remove_diagonal(sqForm{i});
             end
@@ -155,10 +140,10 @@ classdef factor_analysis < load_data.load_data
             %figure, hold on
             %imagesc(t_corr), colorbar
             %ax = gca;
-            %ax.YTick = 1:length(obj.categoryNames);
-            %ax.XTick = 1:length(obj.categoryNames);
-            %ax.YTickLabel = obj.categoryNames;
-            %ax.XTickLabel = obj.categoryNames;
+            %ax.YTick = 1:length(obj.subgroupNames);
+            %ax.XTick = 1:length(obj.subgroupNames);
+            %ax.YTickLabel = obj.subgroupNames;
+            %ax.XTickLabel = obj.subgroupNames;
             %hold off
             %title('Correlations between languages')
             %snapnow
@@ -182,13 +167,13 @@ classdef factor_analysis < load_data.load_data
            %number of emotions to remove 
            removeEmoNum = floor(obj.removalPercentage*length(mean(obj.emo)));
            %remove least rated emotions
-           disp('*** REDUCING EMOTION LIST ***')
            [b,idx] = sort(mean(obj.emo),'descend');
+           obj.removedEmotions = obj.emoLabels(idx(end-removeEmoNum+1:end));
            if obj.showPlotsFA==1
+               disp('*** REDUCING EMOTION LIST ***')
                disp(['Removing ' num2str(obj.removalPercentage*100) '% of' ...
                    ' least rated emotions'])
-           disp(array2table(obj.emoLabels(idx(end-removeEmoNum+1:end))',...
-               'VariableNames',{'Emotions removed'}));           
+           disp(array2table(obj.removedEmotions','VariableNames',{'Emotions removed'}));           
            end
            idx = idx(1:end-removeEmoNum);
            idx = sort(idx,'ascend');
@@ -203,7 +188,7 @@ classdef factor_analysis < load_data.load_data
         end
         function obj = cronbach_categories(obj)
            remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]); 
-           groupings = findgroups(obj.dataTable(:,obj.filterCategory));
+           groupings = findgroups(obj.dataTable(:,obj.groupingCategory));
            for i = 1:size(obj.emo,1)
                disParticipant{i} = remove_diagonal(squareform(pdist(obj.emo(i,:)'))); 
            end
@@ -212,19 +197,8 @@ classdef factor_analysis < load_data.load_data
            alphasCat(i,:) = splitapply(@cronbach,disEmo',groupings);
            alphasWhole(i,1) = cronbach(disEmo');
            end
-           t_alpha = array2table([alphasWhole alphasCat],'VariableNames',[{'Global'}; obj.categoryNames],'RowNames',obj.emoLabels);
+           t_alpha = array2table([alphasWhole alphasCat],'VariableNames',[{'Global'}; obj.subgroupNames],'RowNames',obj.emoLabels);
            disp(t_alpha);
-        end
-        function obj = select_subgroups(obj)
-          [P,ANOVATAB] = anova1(V,GROUP); 
-        end
-    end
-    methods(Static)
-        function tableY = filterMostFrequentCategories(tableX,Var,N)
-            % N = minimum sample size
-            g = groupcounts(tableX,Var);
-            cats = g.(Var)(g.GroupCount >= N);
-            tableY = tableX(matches(tableX.(Var), cats),:);
         end
     end
 end

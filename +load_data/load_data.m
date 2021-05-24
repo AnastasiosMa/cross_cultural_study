@@ -1,41 +1,45 @@
 classdef load_data
     %Load data
-    %example obj = load_data.load_data('responses_pilot/Music Listening Habits.csv')
+    %example obj = load_data.load_data('responses_pilot/Music Listening Habits.csv','AllResponses')
     properties
         dataPath
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
-        dataTable
+        dataTable %table to be used in the analysis
+        alldataTable %table with data from all responses
+        groupTable %table with responses only from selected groups
         discardMissingData = 1; %Discard responses with missing data
         genderLabels = {'Female','Male','Other'};
         musicianshipLabels = {'Nonmusician','Music-loving nonmusician','Amateur musician','Semiprofessional musician','Professional musician'};
         educationLabels = {'Elementary school','High school','Vocational training','Bachelor''s degree','Master''s degree','Doctoral degree','Other','Prefer not to say','NA'};
         employmentLabels = {'Employed full-time', 'Employed part-time / casual', 'Self-employed', 'Student', 'Homemaker / caregiver', 'Retired', 'Currently out of work', 'Other', 'Prefer not to say','NA'}
         economicSituationLabels = {'Below Average','Average','Above Average'};
-        createExcel = 1; %Create excel file with preprocessed data;
-        showPlots = 1; %Display plots, tables, and text
         durationThr = 4; %Duration Threshold to exclude responses (in minutes)
         excludeShortResponses = 1; %Exclude responses below duration threshold
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
         excludeResponsesFromFile = 1;
         excludeResponsesPath = 'responses_pilot/faulty ids.xlsx';
-        useSubgroups = 1; % add Subgroups (compute or load them from file)
-        createSubgroups = 0; % compute subgroups through permutations
-        groupTable %dataTable with only selected subgroup responses
-        subgroupCategory = 'Country_childhood';
-        subgroupNames %Country group names 
-        subgroupMinNumber = 70; 
+        filterMethod %Accepted Inputs: 'AllResponses','BalancedSubgroups',
+        %'UnbalancedSubgroups' 
+        createBalancedSubgroups = 0; % create subgroups through permutations
+        groupingCategory = 'Country_childhood';
+        subgroupNames %Country group names
+        subgroupMinNumber = 70;
         subgroupIds %ids of selected subgroup responses
         repetitions = 1E+7; %number of permutations
         exportSubgroups = 1;
         subgroupIdxsPath = 'matchGenderAge/subsampling.mat'; %mat file with subgroup indexes
+        createExcel = 0; %Create excel file with preprocessed data;
+        showPlots = 0; %Display plots, tables, and text
     end
     methods
-        function obj = load_data(dataPath)
+        function obj = load_data(dataPath,filterMethod)
             warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
             if nargin == 0
                 dataPath = [];
+                filterMethod = [];
             end
             obj.dataPath = dataPath;
+            obj.filterMethod = filterMethod;
             obj = get_variable_names(obj);
             obj = correct_variables(obj);
             if obj.discardMissingData ==1
@@ -44,29 +48,38 @@ classdef load_data
             if obj.excludeResponsesFromFile==1
                 obj = exclude_from_file(obj);
             end
+            if obj.excludeShortResponses ==1
             obj = survey_duration(obj);
+            end
             if  obj.excludeRepetativeResponses
                 obj = responderVariability(obj);
             end
+            if ~strcmpi(obj.filterMethod,'AllResponses')
             obj = create_groupTable(obj);
+            end
             if obj.showPlots == 1
                 obj = count_participants(obj);
                 %obj = age_distribution(obj);
                 %obj = gender_distribution(obj);
             end
-            if obj.useSubgroups == 1 && obj.createSubgroups == 1 
-                obj = create_subgroups(obj);
+            if strcmpi(obj.filterMethod,'BalancedSubgroups')...
+                    && obj.createBalancedSubgroups == 1
+                obj = create_balanced_subgroups(obj);
             end
-            if obj.useSubgroups == 1 
-            obj = load_subgroups(obj);
+            if exist(obj.subgroupIdxsPath)
+                obj = load_subgroups(obj);
             end
-            if obj.showPlots==1
-            obj = age_subgroups(obj);
-            obj = gender_subgroups(obj);
+            if obj.showPlots==1 && strcmpi(obj.filterMethod,'BalancedSubgroups') 
+                obj = age_subgroups(obj);
+                obj = gender_subgroups(obj);
             end
             if obj.createExcel==1
                 writetable(obj.dataTable,'ccsData.csv','Encoding','UTF-8')
                 dataTable = obj.dataTable; save('ccsData','dataTable');
+            end
+            if ~strcmpi(obj.filterMethod,'AllResponses')
+            obj.alldataTable = obj.dataTable;
+            obj.dataTable = obj.groupTable;
             end
         end
         function obj = get_variable_names(obj)
@@ -183,7 +196,7 @@ classdef load_data
         function obj = age_distribution(obj)
             m_Age = mean(obj.dataTable.Age);
             sd_Age = std(obj.dataTable.Age);
-            disp('*** AGE distribution BEFORE SUBSAMPLING ***')
+            disp('*** AGE distribution ***')
             disp(array2table([m_Age, sd_Age],'VariableNames',{'Mean','SD'}))
             %Age distribution across languages
             %figure
@@ -219,22 +232,24 @@ classdef load_data
             snapnow
         end
         function obj = gender_distribution(obj)
-            disp('*** GENDER distribution BEFORE SUBSAMPLING ***')
+            disp('*** GENDER distribution ***')
             gender_N = groupcounts(obj.dataTable,'Gender');
             disp(gender_N)
-            %calculate gender balance in each group
-            for i=1:length(obj.subgroupNames)
-                genderG = groupcounts(obj.groupTable(matches(obj.groupTable.(obj.subgroupCategory),...
-                    obj.subgroupNames{i}),'Gender'),'Gender');
-                f_idx = find(strcmpi(table2array(genderG(:,1)),'Female'));
-                m_idx = find(strcmpi(table2array(genderG(:,1)),'Male'));
-                genderGt(:,i) = genderG.GroupCount([f_idx m_idx]);
-                genderRatio(:,i) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
+            if strcmpi(obj.filterMethod,'BalancedSubgroups')
+                %calculate gender balance in each group
+                for i=1:length(obj.subgroupNames)
+                    genderG = groupcounts(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
+                        obj.subgroupNames{i}),'Gender'),'Gender');
+                    f_idx = find(strcmpi(table2array(genderG(:,1)),'Female'));
+                    m_idx = find(strcmpi(table2array(genderG(:,1)),'Male'));
+                    genderGt(:,i) = genderG.GroupCount([f_idx m_idx]);
+                    genderRatio(:,i) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
+                end
+                t = array2table([genderGt',genderRatio'],'VariableNames',[obj.genderLabels(1:2),...
+                    'Female (%)','Male (%)'], 'RowNames',obj.subgroupNames);
+                disp('Gender balance for each country')
+                disp(t);
             end
-            t = array2table([genderGt',genderRatio'],'VariableNames',[obj.genderLabels(1:2),...
-                'Female (%)','Male (%)'], 'RowNames',obj.subgroupNames);
-            disp('Gender balance for each country')
-            disp(t);
         end
         function obj = survey_duration(obj)
             disp('---Removing responses with low survey duration');
@@ -289,33 +304,32 @@ classdef load_data
             [c,idx] = setdiff(table2array(obj.dataTable(:,'RespondentID')),faultyIDs');
             obj.dataTable = obj.dataTable(idx,:);
             if obj.showPlots==1
-            disp('*** Outlier Detection ***')
-            disp('3 criteria: Survey duration, low variability, repeated entry(based on participant ID)')
-            disp('---Removing responses based on ID')
-            disp([num2str(length(faultyIDs)) ' responses removed from ID'])
+                disp('*** Outlier Detection ***')
+                disp('3 criteria: Survey duration, low variability, repeated entry(based on participant ID)')
+                disp('---Removing responses based on ID')
+                disp([num2str(length(faultyIDs)) ' responses removed from ID'])
             end
         end
         function obj = create_groupTable(obj)
-            %filterTable with most frequent countries
-            g = groupcounts(obj.dataTable,obj.subgroupCategory);
-            obj.subgroupNames = g.(obj.subgroupCategory)(g.GroupCount >= ...
+            g = groupcounts(obj.dataTable,obj.groupingCategory);
+            obj.subgroupNames = g.(obj.groupingCategory)(g.GroupCount >= ...
                 obj.subgroupMinNumber);
-            obj.groupTable = obj.dataTable(matches(obj.dataTable.(obj.subgroupCategory), ...
+            obj.groupTable = obj.dataTable(matches(obj.dataTable.(obj.groupingCategory), ...
                 obj.subgroupNames),:);
+        end
+        function obj = create_balanced_subgroups(obj)
             %remove Other gender
             obj.groupTable = obj.groupTable(~matches(obj.groupTable.Gender, ...
                 'Other'),:);
-        end
-        function obj = create_subgroups(obj)
-            g = groupcounts(obj.groupTable,obj.subgroupCategory);
+            g = groupcounts(obj.groupTable,obj.groupingCategory);
             partitionSizes = g.GroupCount;
             [~, smallestPartitionIdx] = min(partitionSizes);
             for i=1:length(obj.subgroupNames)
-                age{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.subgroupCategory),...
+                age{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
                     obj.subgroupNames{i}),{'Age'}));
-                gender{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.subgroupCategory),...
+                gender{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
                     obj.subgroupNames{i}),{'Gender'}));
-                respondentID{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.subgroupCategory),...
+                respondentID{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
                     obj.subgroupNames{i}),{'RespondentID'}));
             end
             ageSP = age{smallestPartitionIdx};
@@ -324,12 +338,12 @@ classdef load_data
             %AGE-GENDER differences
             ii = 1;
             if exist(obj.subgroupIdxsPath)
-               load(obj.subgroupIdxsPath);
-             genderRatioMin = subsampling.genderRatio;
-             etaSquareMin = subsampling.etaSquare;
+                load(obj.subgroupIdxsPath);
+                genderRatioMin = subsampling.genderRatio;
+                etaSquareMin = subsampling.etaSquare;
             else
-               genderRatioMin = 1; %Initiate repetitions with MAX parameter values
-            etaSquareMin = 1; 
+                genderRatioMin = 1; %Initiate repetitions with MAX parameter values
+                etaSquareMin = 1;
             end
             for j = 1:obj.repetitions
                 [a, curIdx] = arrayfun(@(x) datasample(age{x},numel(ageSP),'Replace',false),otherPartitionsIdx,'un',0);
@@ -341,7 +355,7 @@ classdef load_data
                 for k = otherPartitionsIdx'
                     t = tabulate(gender{k}(curIdx{i}));
                     f_idx = find(strcmpi(t(:,1),'Female'));
-                    m_idx = find(strcmpi(t(:,1),'Male')); 
+                    m_idx = find(strcmpi(t(:,1),'Male'));
                     i = i + 1;
                     tf(k) = t{f_idx,3};
                     tm(k) = t{m_idx,3};
@@ -349,7 +363,7 @@ classdef load_data
                 tS = tabulate(gender{smallestPartitionIdx});
                 tf(smallestPartitionIdx) = tS{1,3};
                 tm(smallestPartitionIdx) = tS{2,3};
-                %genderRatio(ii) = std(tf-tm); % standard deviation of the 
+                %genderRatio(ii) = std(tf-tm); % standard deviation of the
                 % partition-wise gender ratios
                 genderRatio = sum(abs(tf-tm)/100)/length(obj.subgroupNames); %difference between gender ratios
                 if (genderRatio*etaSquare < genderRatioMin*etaSquareMin)...
@@ -373,7 +387,7 @@ classdef load_data
                 groupIDs{k} = respondentID{i}(idx{k});
                 k=k+1;
             end
-            groupIDs{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.subgroupCategory),...
+            groupIDs{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
                 obj.subgroupNames{smallestPartitionIdx}),'RespondentID'));
             groupIDs = cell2mat(groupIDs);
             groupIDs = groupIDs(:);
@@ -386,7 +400,7 @@ classdef load_data
             subsampling.genderRatio = genderRatioMin;
             subsampling.etaSquare = etaSquareMin;
             subsampling.countryNames = obj.subgroupNames;
-            subsampling.subgroupCategory = obj.subgroupCategory;
+            subsampling.groupingCategory = obj.groupingCategory;
             if obj.exportSubgroups
                 save(obj.subgroupIdxsPath,'subsampling');
             end
@@ -394,24 +408,24 @@ classdef load_data
         function obj = load_subgroups(obj)
             load(obj.subgroupIdxsPath);
             obj.subgroupNames = subsampling.countryNames;
-             obj.subgroupCategory = subsampling.subgroupCategory;
-             obj.subgroupIds = subsampling.subgroupIds;
+            obj.groupingCategory = subsampling.groupingCategory;
+            obj.subgroupIds = subsampling.subgroupIds;
             if obj.showPlots == 1
-            disp(['*** AGE-GENDER Subsampling Results ***'])
-            disp(['Number of iterations: ' num2str(obj.repetitions)])
-            %disp(['Participants per country: ' num2str(length(obj.subgroupIds{1}))])
-            disp('---AGE')
-            disp(['ANOVA table for age comparison between groups, ' ,...
-                'IV: Country (Childhood), DV: Age'])
-            disp(subsampling.ANOVAtbl)
-            disp(['Eta square: ' num2str(subsampling.etaSquare)])
-            disp('')
-            disp('---GENDER')
-            disp('Gender ratio: Mean Difference between gender ratios')
-            disp(['Gender ratio: ' num2str(subsampling.genderRatio)]);
+                disp(['*** AGE-GENDER Subsampling Results ***'])
+                disp(['Number of iterations: ' num2str(obj.repetitions)])
+                %disp(['Participants per country: ' num2str(length(obj.subgroupIds{1}))])
+                disp('---AGE')
+                disp(['ANOVA table for age comparison between groups, ' ,...
+                    'IV: Country (Childhood), DV: Age'])
+                disp(subsampling.ANOVAtbl)
+                disp(['Eta square: ' num2str(subsampling.etaSquare)])
+                disp('')
+                disp('---GENDER')
+                disp('Gender ratio: Mean Difference between gender ratios')
+                disp(['Gender ratio: ' num2str(subsampling.genderRatio)]);
             end
-            [~,tidx]=intersect(table2array(obj.groupTable(:,'RespondentID')),obj.subgroupIds);
-            obj.groupTable = obj.groupTable(tidx,:);
+            [~,tidx]=intersect(table2array(obj.dataTable(:,'RespondentID')),obj.subgroupIds);
+            obj.groupTable = obj.dataTable(tidx,:);
         end
         function obj = age_subgroups(obj)
             m_Age = mean(obj.groupTable.Age);
@@ -456,14 +470,14 @@ classdef load_data
             p=plot([pre(:,1),post(:,1)]);
             yline(m_Age, 'k--')
             text(length(obj.subgroupNames)/2,m_Age-0.3,'Grand Mean')
-            ylabel('Mean age'); xlabel('Country (Childhood)'); 
+            ylabel('Mean age'); xlabel('Country (Childhood)');
             title('Age distribution Pre-Post subsampling')
             legend(p,'Pre','Post')
             set(gca,'XTick',1:length(obj.subgroupNames),'XTickLabels',obj.subgroupNames),xtickangle(45)
             hold off
             %plotstds
             %errorbar([pre(:,1),post(:,1)],[pre(:,2),post(:,2)]/2,'-s','markersize',7,...
-                %'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
+            %'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
             snapnow
         end
         function obj = gender_subgroups(obj)
@@ -472,7 +486,7 @@ classdef load_data
             disp(genderN)
             %calculate gender balance in each group POST SUBSAMPLING
             for i=1:length(obj.subgroupNames)
-                genderG = groupcounts(obj.groupTable(matches(obj.groupTable.(obj.subgroupCategory),...
+                genderG = groupcounts(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
                     obj.subgroupNames{i}),'Gender'),'Gender');
                 f_idx = find(strcmpi(table2array(genderG(:,1)),'Female'));
                 m_idx = find(strcmpi(table2array(genderG(:,1)),'Male'));
@@ -485,7 +499,7 @@ classdef load_data
             disp(t);
             %calculate gender balance in each group PRE SUBSAMPLING
             for i=1:length(obj.subgroupNames)
-                genderG = groupcounts(obj.dataTable(matches(obj.dataTable.(obj.subgroupCategory),...
+                genderG = groupcounts(obj.dataTable(matches(obj.dataTable.(obj.groupingCategory),...
                     obj.subgroupNames{i}),'Gender'),'Gender');
                 f_idx = find(strcmpi(table2array(genderG(:,1)),'Female'));
                 m_idx = find(strcmpi(table2array(genderG(:,1)),'Male'));
@@ -500,7 +514,7 @@ classdef load_data
             p = plot([genderRatioDiffPre,genderRatioDiffPost]);
             yline(0, 'k--')
             text(length(obj.subgroupNames)/2,-5,'Equally balanced groups')
-            ylabel('Male - Female difference (%)'); xlabel('Country (Childhood)'); 
+            ylabel('Male - Female difference (%)'); xlabel('Country (Childhood)');
             title('Gender Balance Pre-Post subsampling')
             legend(p,'Pre','Post')
             set(gca,'XTick',1:length(obj.subgroupNames),'XTickLabels',obj.subgroupNames),xtickangle(45)
