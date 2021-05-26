@@ -19,13 +19,15 @@ classdef load_data
         excludeResponsesFromFile = 1;
         excludeResponsesPath = 'responses_pilot/faulty ids.xlsx';
         filterMethod %Accepted Inputs: 'AllResponses','BalancedSubgroups',
-        %'UnbalancedSubgroups' 
+        %'UnbalancedSubgroups'
         createBalancedSubgroups = 0; % create subgroups through permutations
         groupingCategory = 'Country_childhood';
+        balanceVariables = {'Gender'}; %variables to be equalised across groups
+        ageMetricMethod = 'groupSD'%'etaSq'
         subgroupNames %Country group names
         subgroupMinNumber = 70;
         subgroupIds %ids of selected subgroup responses
-        repetitions = 1E+7; %number of permutations
+        repetitions = 1E+8; %number of permutations
         exportSubgroups = 1;
         subgroupIdxsPath = 'matchGenderAge/subsampling.mat'; %mat file with subgroup indexes
         createExcel = 0; %Create excel file with preprocessed data;
@@ -49,27 +51,28 @@ classdef load_data
                 obj = exclude_from_file(obj);
             end
             if obj.excludeShortResponses ==1
-            obj = survey_duration(obj);
+                obj = survey_duration(obj);
             end
             if  obj.excludeRepetativeResponses
                 obj = responderVariability(obj);
             end
             if ~strcmpi(obj.filterMethod,'AllResponses')
-            obj = create_groupTable(obj);
+                obj = create_groupTable(obj);
             end
             if obj.showPlots == 1
                 obj = count_participants(obj);
-                %obj = age_distribution(obj);
-                %obj = gender_distribution(obj);
+                obj = age_distribution(obj);
+                obj = gender_distribution(obj);
             end
             if strcmpi(obj.filterMethod,'BalancedSubgroups')...
                     && obj.createBalancedSubgroups == 1
+                obj = get_baselines(obj);
                 obj = create_balanced_subgroups(obj);
             end
             if exist(obj.subgroupIdxsPath)
                 obj = load_subgroups(obj);
             end
-            if obj.showPlots==1 && strcmpi(obj.filterMethod,'BalancedSubgroups') 
+            if obj.showPlots==1 && strcmpi(obj.filterMethod,'BalancedSubgroups')
                 obj = age_subgroups(obj);
                 obj = gender_subgroups(obj);
             end
@@ -78,8 +81,8 @@ classdef load_data
                 dataTable = obj.dataTable; save('ccsData','dataTable');
             end
             if ~strcmpi(obj.filterMethod,'AllResponses')
-            obj.alldataTable = obj.dataTable;
-            obj.dataTable = obj.groupTable;
+                obj.alldataTable = obj.dataTable;
+                obj.dataTable = obj.groupTable;
             end
         end
         function obj = get_variable_names(obj)
@@ -243,9 +246,9 @@ classdef load_data
                     f_idx = find(strcmpi(table2array(genderG(:,1)),'Female'));
                     m_idx = find(strcmpi(table2array(genderG(:,1)),'Male'));
                     genderGt(:,i) = genderG.GroupCount([f_idx m_idx]);
-                    genderRatio(:,i) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
+                    genderMetric(:,i) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
                 end
-                t = array2table([genderGt',genderRatio'],'VariableNames',[obj.genderLabels(1:2),...
+                t = array2table([genderGt',genderMetric'],'VariableNames',[obj.genderLabels(1:2),...
                     'Female (%)','Male (%)'], 'RowNames',obj.subgroupNames);
                 disp('Gender balance for each country')
                 disp(t);
@@ -339,18 +342,29 @@ classdef load_data
             ii = 1;
             if exist(obj.subgroupIdxsPath)
                 load(obj.subgroupIdxsPath);
-                genderRatioMin = subsampling.genderRatio;
-                etaSquareMin = subsampling.etaSquare;
+                genderMetricMin = subsampling.genderMetric;
+                if strcmpi(obj.ageMetricMethod,'etaSq')
+                    ageMetricMin = subsampling.etaSquare;
+                elseif strcmpi(obj.ageMetricMethod,'groupSD')
+                    ageMetricMin = subsampling.groupSD;
+                end
+                minMetricMin = subsampling.minMetric;
+                
             else
-                genderRatioMin = 1; %Initiate repetitions with MAX parameter values
-                etaSquareMin = 1;
+                minMetricMin = 6; %random large value
             end
             for j = 1:obj.repetitions
                 [a, curIdx] = arrayfun(@(x) datasample(age{x},numel(ageSP),'Replace',false),otherPartitionsIdx,'un',0);
+                groupSD = std(cell2mat(arrayfun(@(x) mean(cell2mat(x)),a,'un',0)));
                 [~,tbl] = anova1(cell2mat([a' {ageSP}]),[],'off');
                 fStat(ii) = tbl{2,5}; % anova F-statistic
                 SScol = tbl{2,2}; SStotal = tbl{4,2};
                 etaSquare = SScol/SStotal;
+                if strcmpi(obj.ageMetricMethod,'etaSq')
+                    ageMetric = etaSquare;
+                elseif strcmpi(obj.ageMetricMethod,'groupSD')
+                    ageMetric = groupSD;
+                end
                 i = 1;
                 for k = otherPartitionsIdx'
                     t = tabulate(gender{k}(curIdx{i}));
@@ -361,21 +375,28 @@ classdef load_data
                     tm(k) = t{m_idx,3};
                 end
                 tS = tabulate(gender{smallestPartitionIdx});
-                tf(smallestPartitionIdx) = tS{1,3};
-                tm(smallestPartitionIdx) = tS{2,3};
-                %genderRatio(ii) = std(tf-tm); % standard deviation of the
+                tf(smallestPartitionIdx) = tS{find(strcmpi(tS(:,1),'Female')),3};
+                tm(smallestPartitionIdx) = tS{find(strcmpi(tS(:,1),'Male')),3};
+                %genderMetric(ii) = std(tf-tm); % standard deviation of the
                 % partition-wise gender ratios
-                genderRatio = sum(abs(tf-tm)/100)/length(obj.subgroupNames); %difference between gender ratios
-                if (genderRatio*etaSquare < genderRatioMin*etaSquareMin)...
-                        && genderRatio*etaSquare ~= 0
+                genderMetric = sum(abs(tf-tm)/100)/length(obj.subgroupNames); %difference between gender ratios
+                if length(obj.balanceVariables)==2
+                    minMetric = genderMetric*ageMetric;
+                elseif strcmpi(obj.balanceVariables,'Age')
+                    minMetric = ageMetric;
+                elseif strcmpi(obj.balanceVariables,'Gender')
+                    minMetric = genderMetric;
+                end
+                if (minMetric < minMetricMin)&& minMetric ~= 0
                     idx = curIdx;
-                    disp(join([string(datetime) num2str(min(genderRatio))...
-                        num2str(min(etaSquare)) num2str(j)]))
-                    etaSquareMin = etaSquare;
-                    genderRatioMin = genderRatio;
+                    disp(join([string(datetime) num2str(minMetric) ...
+                        num2str(genderMetric) num2str(ageMetric) num2str(j)]))
+                    ageMetricMin = ageMetric;
+                    genderMetricMin = genderMetric;
+                    minMetricMin = minMetric;
                     ii = 2;
                     ANOVAtbl = tbl;
-                elseif genderRatio*etaSquare == 0
+                elseif minMetric == 0
                     error('We went to zero')
                 else
                     ii = ii+1;
@@ -397,8 +418,16 @@ classdef load_data
             subsampling.smallestPartitionIdx = smallestPartitionIdx;
             subsampling.partitionSizes = partitionSizes;
             subsampling.ANOVAtbl = ANOVAtbl;
-            subsampling.genderRatio = genderRatioMin;
-            subsampling.etaSquare = etaSquareMin;
+            subsampling.genderMetric = genderMetricMin;
+            subsampling.ageMetric = ageMetricMin;
+            subsampling.minMetric = minMetricMin;
+            if strcmpi(obj.ageMetricMethod,'etaSq')
+                subsampling.etaSquare = ageMetricMin;
+                subsampling.groupSD = NaN;
+            elseif strcmpi(obj.ageMetricMethod,'groupSD')
+                subsampling.groupSD = ageMetricMin;
+                subsampling.etaSquare = NaN;
+            end
             subsampling.countryNames = obj.subgroupNames;
             subsampling.groupingCategory = obj.groupingCategory;
             if obj.exportSubgroups
@@ -419,10 +448,11 @@ classdef load_data
                     'IV: Country (Childhood), DV: Age'])
                 disp(subsampling.ANOVAtbl)
                 disp(['Eta square: ' num2str(subsampling.etaSquare)])
+                disp(['GroupSD: ' num2str(subsampling.groupSD)])
                 disp('')
                 disp('---GENDER')
                 disp('Gender ratio: Mean Difference between gender ratios')
-                disp(['Gender ratio: ' num2str(subsampling.genderRatio)]);
+                disp(['Gender ratio: ' num2str(subsampling.genderMetric)]);
             end
             [~,tidx]=intersect(table2array(obj.dataTable(:,'RespondentID')),obj.subgroupIds);
             obj.groupTable = obj.dataTable(tidx,:);
@@ -491,9 +521,9 @@ classdef load_data
                 f_idx = find(strcmpi(table2array(genderG(:,1)),'Female'));
                 m_idx = find(strcmpi(table2array(genderG(:,1)),'Male'));
                 genderGtPost(i,:) = genderG.GroupCount([f_idx m_idx]);
-                genderRatioPost(i,:) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
+                genderMetricPost(i,:) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
             end
-            t = array2table([genderGtPost,genderRatioPost],'VariableNames',[obj.genderLabels(1:2),...
+            t = array2table([genderGtPost,genderMetricPost],'VariableNames',[obj.genderLabels(1:2),...
                 'Female (%)','Male (%)'], 'RowNames',obj.subgroupNames);
             disp('Gender balance for each country')
             disp(t);
@@ -504,14 +534,14 @@ classdef load_data
                 f_idx = find(strcmpi(table2array(genderG(:,1)),'Female'));
                 m_idx = find(strcmpi(table2array(genderG(:,1)),'Male'));
                 genderGtPre(i,:) = genderG.GroupCount([f_idx m_idx]);
-                genderRatioPre(i,:) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
+                genderMetricPre(i,:) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
             end
-            genderRatioDiffPre = genderRatioPre(:,1)-genderRatioPre(:,2);
-            genderRatioDiffPost = genderRatioPost(:,1)-genderRatioPost(:,2);
+            genderMetricDiffPre = genderMetricPre(:,1)-genderMetricPre(:,2);
+            genderMetricDiffPost = genderMetricPost(:,1)-genderMetricPost(:,2);
             %plot PRE-POST Gender differences
             figure
             hold on
-            p = plot([genderRatioDiffPre,genderRatioDiffPost]);
+            p = plot([genderMetricDiffPre,genderMetricDiffPost]);
             yline(0, 'k--')
             text(length(obj.subgroupNames)/2,-5,'Equally balanced groups')
             ylabel('Male - Female difference (%)'); xlabel('Country (Childhood)');
@@ -519,6 +549,46 @@ classdef load_data
             legend(p,'Pre','Post')
             set(gca,'XTick',1:length(obj.subgroupNames),'XTickLabels',obj.subgroupNames),xtickangle(45)
             hold off
+        end
+        function obj = get_baselines(obj)
+            obj.groupTable = obj.groupTable(~matches(obj.groupTable.Gender, ...
+                'Other'),:);
+            for i =1:length(obj.subgroupNames)
+                gender{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
+                    obj.subgroupNames{i}),{'Gender'}));
+                age{i} = table2array(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
+                    obj.subgroupNames{i}),{'Age'}));
+                t = tabulate(gender{i});
+                f_idx = find(strcmpi(t(:,1),'Female'));
+                m_idx = find(strcmpi(t(:,1),'Male'));
+                nf = t{f_idx,2};
+                nm = t{m_idx,2};
+                if nf<= obj.subgroupMinNumber/2
+                    tf(i) = nf/obj.subgroupMinNumber;
+                    tm(i) = 1-tf(i);
+                elseif nm<= obj.subgroupMinNumber/2
+                    tm(i) = nm/obj.subgroupMinNumber;
+                    tf(i) = 1-tm(i);
+                else
+                    tm(i) = 0.5;
+                    tf(i) = 0.5;
+                end
+            end
+            genderMetric = sum(abs(tf-tm))/length(obj.subgroupNames); %difference between gender ratios
+            disp(['Baseline Gender ratio: ' num2str(genderMetric)]);
+            mAge = cell2mat(arrayfun(@(x) median(cell2mat(x)), age,'un',0));
+            globalMedian = mean(mAge);
+            for i =1:length(obj.subgroupNames)
+                [~,idx] = sort(abs(age{i}-globalMedian),'ascend');
+                age{i} = age{i}(idx(1:obj.subgroupMinNumber));
+            end
+            [a,tbl] = anova1(cell2mat(age),[],'off');
+            sdmeanAge = std(cell2mat(arrayfun(@(x) mean(cell2mat(x)),age,'un',0)));
+            disp(['Age baseline group MAD: ' num2str(sdmeanAge)]);
+            fStat = tbl{2,5}; % anova F-statistic
+            SSgroup = tbl{2,2}; SStotal = tbl{4,2};
+            etaSquare = SSgroup/SStotal;
+            disp(['Eta Square: ' num2str(etaSquare)]);
         end
     end
 end
