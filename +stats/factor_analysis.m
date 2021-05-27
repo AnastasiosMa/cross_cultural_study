@@ -17,6 +17,10 @@ classdef factor_analysis < load_data.load_data
     end   
     methods
         function obj = factor_analysis(dataPath,filterMethod)
+            if nargin < 2
+                error('ErrorTests:convertTest',...
+              'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
+             end
             if nargin == 0
                 dataPath = [];
                 filterMethod = [];

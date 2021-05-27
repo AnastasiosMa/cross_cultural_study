@@ -6,11 +6,11 @@ classdef mlh_emo_anovas < load_data.load_data
     end
 
     methods
-        function obj = mlh_emo_anovas(dataPath)
+        function obj = mlh_emo_anovas(dataPath, filterMethod)
             if nargin == 0
                 dataPath = [];
             end
-            obj = obj@load_data.load_data(dataPath);
+            obj = obj@load_data.load_data(dataPath, filterMethod);
         end
         function obj = do_anovas(obj)
             reasonLabels = {'for background purposes'

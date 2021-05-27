@@ -36,6 +36,10 @@ classdef load_data
     methods
         function obj = load_data(dataPath,filterMethod)
             warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
+             if nargin < 2
+                error('ErrorTests:convertTest',...
+              'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
+             end
             if nargin == 0
                 dataPath = [];
                 filterMethod = [];
