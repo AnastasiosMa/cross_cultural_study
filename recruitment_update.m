@@ -23,10 +23,27 @@ country_counts = groupcounts(obj.dataTable,'Country_childhood');
 country_counts.('Country_childhood') = string(country_counts.('Country_childhood'));
 disp('Number of responses per COUNTRY OF CHILDHOOD')
 disp(sortrows(country_counts,-2))
+g = groupcounts(obj.dataTable,'Country_childhood');
+subgroupNames = g.Country_childhood(g.GroupCount >= ...
+    75);
+groupTable = obj.dataTable(matches(obj.dataTable.Country_childhood, ...
+    subgroupNames),:);
 %% Gender
 gender_N = groupcounts(obj.dataTable,'Gender');
 disp(gender_N)
-
+for i=1:length(subgroupNames)
+    genderG = groupcounts(groupTable(matches(groupTable.Country_childhood,...
+        subgroupNames{i}),'Gender'),'Gender');
+    f_idx = find(strcmpi(table2array(genderG(:,1)),'Female'));
+    m_idx = find(strcmpi(table2array(genderG(:,1)),'Male'));
+    genderGt(:,i) = genderG.GroupCount([f_idx m_idx]);
+    genderRatio(:,i) = genderG.GroupCount(1:2)*100/sum(genderG.GroupCount);
+end
+genderLabels = {'Female','Male'};
+t = array2table([genderGt',genderRatio'],'VariableNames',[genderLabels(1:2),...
+    'Female (%)','Male (%)'], 'RowNames',subgroupNames);
+disp('Gender balance for each country')
+disp(t);
 %% Age (all)
 m_Age = mean(obj.dataTable.Age);
 sd_Age = std(obj.dataTable.Age);
@@ -46,24 +63,13 @@ xlabel('Languages');ylabel('Age');
 title('Boxplots per language');
 %% Age (countries)
 disp('Age distribution per COUNTRY OF ORIGIN')
-disp('Note: Only including countries with 30 or more participants')
+disp('Note: Only including countries with 60 or more participants')
 countries_N = groupcounts(obj.dataTable,'Country_childhood');
-            %find countries with enough participants
-countries_N = table2array(countries_N(table2array(countries_N(:,2))>=30,1));
+%find countries with enough participants
+countries_N = table2array(countries_N(table2array(countries_N(:,2))>=60,1));
 %Find indexes of countries with enough participants
 all_idx = cellfun(@(x) find(strcmp(x, obj.dataTable.Country_childhood)),...
     countries_N, 'UniformOutput', false);
-idx_c = [];
-disp('Histograms per country')
-for i=1:length(all_idx)
-    idx_c = [idx_c; all_idx{i}];
-    stats_c(i,1) = mean(obj.dataTable.Age(all_idx{i}));
-    stats_c(i,2) = std(obj.dataTable.Age(all_idx{i}));
-    figure
-    histogram(obj.dataTable.Age(all_idx{i}))
-    xlabel('Age (in years)'); ylabel('Number of responders');
-    title([countries_N{i}])    
-end
 %%
 disp('Means and SDs per country')
 disp(array2table(stats_c,'VariableNames',{'Mean','SD'},'RowNames',countries_N))

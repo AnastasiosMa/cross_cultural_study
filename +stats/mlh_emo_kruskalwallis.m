@@ -11,7 +11,7 @@ classdef mlh_emo_kruskalwallis < load_data.load_data
             if nargin == 0
                 dataPath = [];
             end
-            obj = obj@load_data.load_data(dataPath);
+            obj = obj@load_data.load_data(dataPath, filterMethod);
         end
         function obj = do_kruskalwallis(obj)
             reasonLabels = {'for background purposes'
