@@ -41,7 +41,7 @@ classdef predict_emotions_from_reasons < load_data.load_data
                 set(0,'DefaultFigureVisible','off')
                 fa = stats.factor_analysis(obj.dataPath,obj.filterMethod);
                 set(0,'DefaultFigureVisible','on')
-                fa.FAscores(any(isnan(tableFunctions{:,:}), 2), :) = []
+                fa.FAscores(any(isnan(tableFunctions{:,:}), 2), :) = [];
                 for j = 1:numel(reasonLabels)
                     FactorNames = {'TendernessLove','TriumphBeauty','PainSadness','PleasureHappiness',reasonLabels{j}};
                                     mdl{j} = fitlm(zscore(fa.FAscores),zscore(Y(:,j)),'VarNames',FactorNames);
