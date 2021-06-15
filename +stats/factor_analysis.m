@@ -12,7 +12,7 @@ classdef factor_analysis < load_data.load_data
         removeEmoTermsManually = 0; %select manually emotions to remove
         emoToRemove  % = {'Spirituality','Longing','Amusement','Security','Belonging'};
         %emoToRemove = {'Tension','Eroticism'};
-        PCNum =5;%number of factors
+        PCNum =4;%number of factors
         FAcoeff
         FAscores
     end
