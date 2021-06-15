@@ -1,15 +1,20 @@
 classdef mlh_emo_kruskalwallis < load_data.load_data
     % exploring kruskalwallis based on mlh behavior
-    % example obj = stats.mlh_emo_kruskalwallis('responses_pilot/Music Listening Habits.csv'); do_kruskalwallis(obj);
+    % example obj = stats.mlh_emo_kruskalwallis('responses_pilot/Music Listening Habits.csv','AllResponses'); do_kruskalwallis(obj);
     properties
         ReasonType = 'GeneralBehavior'% 'GeneralBehavior','SelectedTrack'
         Var = 'employmentLabels';%'employmentLabels','AgeCategory','EconomicSituation','Education','Employment','Gender','Musicianship'
     end
 
     methods
-        function obj = mlh_emo_kruskalwallis(dataPath)
+        function obj = mlh_emo_kruskalwallis(dataPath,filterMethod)
+            if nargin < 2
+                error('ErrorTests:convertTest',...
+              'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
+             end
             if nargin == 0
                 dataPath = [];
+                filterMethod = [];
             end
             obj = obj@load_data.load_data(dataPath, filterMethod);
         end

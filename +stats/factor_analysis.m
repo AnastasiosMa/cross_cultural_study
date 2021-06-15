@@ -1,6 +1,6 @@
 classdef factor_analysis < load_data.load_data
     %example obj = stats.factor_analysis('~/Desktop/ccstudy/responses_pilot/Music Listening Habits.csv','AllResponses')
-    
+
     properties
         emo
         emoLabels
@@ -14,7 +14,8 @@ classdef factor_analysis < load_data.load_data
         %emoToRemove = {'Tension','Eroticism'};
         PCNum =5;%number of factors
         FAcoeff
-    end   
+        FAscores
+    end
     methods
         function obj = factor_analysis(dataPath,filterMethod)
             if nargin < 2
@@ -43,7 +44,7 @@ classdef factor_analysis < load_data.load_data
             obj = cronbach_categories(obj);
             end
             if obj.removeLeastRatedTerms == 1
-               obj = remove_least_rated_terms(obj); 
+               obj = remove_least_rated_terms(obj);
             end
             if obj.showPlotsFA==1
             obj = pca_emo(obj);
@@ -54,7 +55,7 @@ classdef factor_analysis < load_data.load_data
             disp('*** MEANS AND STANDARD DEVIATIONS ***')
             t_m = table(obj.emoLabels', mean(obj.emo)',std(obj.emo)',...
                 'VariableNames',{'Emotion','Mean score','Standard deviation'});
-            t_m = sortrows(t_m,2,'descend'); 
+            t_m = sortrows(t_m,2,'descend');
             figure
             errorbar(table2array(t_m(:,2)),table2array(t_m(:,3))/2,'-s','markersize',7,...
                 'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
@@ -73,7 +74,7 @@ classdef factor_analysis < load_data.load_data
             subplot(1,2,1)
             plot(eigenvalues)
             xlabel('PCs');ylabel('Eigenvalues')
-            title('Eigenvalues Scree plot')                        
+            title('Eigenvalues Scree plot')
             subplot(1,2,2)
             plot(cumsum(explainedVar))
             xlabel('PCs');ylabel('Cumulative variance explained')
@@ -85,7 +86,7 @@ classdef factor_analysis < load_data.load_data
                 num2str(obj.PCNum) ' Pcs']);
         end
         function  obj = fa(obj)
-            [obj.FAcoeff, psi, ~, stats] = factoran(obj.emo,obj.PCNum,'Rotate','Varimax');
+            [obj.FAcoeff, psi, ~, stats,obj.FAscores] = factoran(obj.emo,obj.PCNum,'Rotate','Varimax');
             disp('*** FACTOR ANALYSIS (varimax rotation)***')
             if obj.showPlotsFA==1
                 figure
@@ -93,7 +94,7 @@ classdef factor_analysis < load_data.load_data
                 ax = gca; ax.YDisplayLabels = num2cell(obj.emoLabels);
                 title('Factor Loadings')
                 snapnow
-            end            
+            end
         end
         function obj = hierarchical_clust(obj)
             linkageMethod = 'average';
@@ -105,7 +106,7 @@ classdef factor_analysis < load_data.load_data
             l = linkage(d,linkageMethod);
             dendrogram(l,33,'orientation','right','labels',obj.emoLabels);
             title('Dendrogram of emotion ratings')
-            snapnow            
+            snapnow
             %Cluster evaluation
             cluster_num = [2:6];
             for k = cluster_num
@@ -132,7 +133,7 @@ classdef factor_analysis < load_data.load_data
             disp('Variance Inflation Factors')
             sortrows(VIF_t,1,'descend')
         end
-        function obj = dendrogram_categories(obj)            
+        function obj = dendrogram_categories(obj)
             remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]);
             for i = 1:length(obj.subgroupNames)
                 d(:,i) = pdist(obj.emo(strcmpi(obj.subgroupNames(i),...
@@ -168,7 +169,7 @@ classdef factor_analysis < load_data.load_data
             obj.emoLabels(:,idx) = [];
         end
         function obj = remove_least_rated_terms(obj)
-           %number of emotions to remove 
+           %number of emotions to remove
            removeEmoNum = floor(obj.removalPercentage*length(mean(obj.emo)));
            %remove least rated emotions
            [b,idx] = sort(mean(obj.emo),'descend');
@@ -177,7 +178,7 @@ classdef factor_analysis < load_data.load_data
                disp('*** REDUCING EMOTION LIST ***')
                disp(['Removing ' num2str(obj.removalPercentage*100) '% of' ...
                    ' least rated emotions'])
-           disp(array2table(obj.removedEmotions','VariableNames',{'Emotions removed'}));           
+           disp(array2table(obj.removedEmotions','VariableNames',{'Emotions removed'}));
            end
            idx = idx(1:end-removeEmoNum);
            idx = sort(idx,'ascend');
@@ -186,15 +187,15 @@ classdef factor_analysis < load_data.load_data
         end
         function obj = correct_emoLabels(obj)
                idx = find(strcmpi('Curiousity',obj.emoLabels));
-                 if idx 
-                    obj.emoLabels{idx} = 'Curiosity'; 
+                 if idx
+                    obj.emoLabels{idx} = 'Curiosity';
                  end
         end
         function obj = cronbach_categories(obj)
-           remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]); 
+           remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]);
            groupings = findgroups(obj.dataTable(:,obj.groupingCategory));
            for i = 1:size(obj.emo,1)
-               disParticipant{i} = remove_diagonal(squareform(pdist(obj.emo(i,:)'))); 
+               disParticipant{i} = remove_diagonal(squareform(pdist(obj.emo(i,:)')));
            end
            for i=1:size(obj.emo,2)
                disEmo = cell2mat(arrayfun(@(x) x{:}(:,i), disParticipant, 'UniformOutput', false));
@@ -206,4 +207,3 @@ classdef factor_analysis < load_data.load_data
         end
     end
 end
-
