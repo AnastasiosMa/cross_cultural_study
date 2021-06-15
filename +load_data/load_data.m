@@ -43,7 +43,6 @@ classdef load_data
                 dataTable = obj.dataTable; save('ccsData','dataTable');
             end
         end
-
         function obj = get_variable_names(obj)
             obj.dataTable = readtable(obj.dataPath,'HeaderLines',1,'Encoding','UTF-8');
             firstrowNames = readtable(obj.dataPath);
