@@ -154,7 +154,7 @@ classdef factor_analysis < load_data.load_data
             %snapnow
             for i=1:length(sqForm{1})
                 dCat{i} = cell2mat(arrayfun(@(x) x{:}(:,i), sqForm, 'UniformOutput', false));
-                alpha(i,1) = cronbach(dCat{i});
+                alpha(i,1) = stats.factor_analysis.cronbach(dCat{i});
             end
             disp('*** CROSS-CULTURAL CONSISTENCY OF EMOTION TERMS ***')
             disp('Running Cronbachs Alpha on pairwise distances vector of each emotion between LANGUAGES')
@@ -206,6 +206,57 @@ classdef factor_analysis < load_data.load_data
             disp(t_alpha);
         end
     end
+    methods (Static)
+        function a=cronbach(X)
+        %Syntax: a=cronbach(X)
+        %_____________________
+        %
+        % Calculates the Cronbach's alpha of a data set X.
+        %
+        % a is the Cronbach's alpha.
+        % X is the data set.
+        %
+        %
+        % Reference:
+        % Cronbach L J (1951): Coefficient alpha and the internal structure of
+        % tests. Psychometrika 16:297-333
+        %
+        %
+        % Alexandros Leontitsis
+        % Department of Education
+        % University of Ioannina
+        % Ioannina
+        % Greece
+        %
+        % e-mail: leoaleq@yahoo.com
+        % Homepage: http://www.geocities.com/CapeCanaveral/Lab/1421
+        %
+        % June 10, 2005.
+
+
+            if nargin<1 | isempty(X)==1
+                error('You shoud provide a data set.');
+            else
+                % X must be a 2 dimensional matrix
+                if ndims(X)~=2
+                    error('Invalid data set.');
+                end
+            end
+
+
+            % Calculate the number of items
+            k=size(X,2); % how many variables
+
+            % Calculate the variance of the items' sum
+            VarTotal=var(sum(X')); % sum across items, then variance across
+                                   % subjects: high if subjects differ a lot
+
+            % Calculate the item variance
+            SumVarX=sum(var(X)); % sum across subjects, then variance across
+                                 % items: high if items differ a lot
+
+            % Calculate the Cronbach's alpha
+            a=k/(k-1)*(VarTotal-SumVarX)/VarTotal;
         end
     end
 end
