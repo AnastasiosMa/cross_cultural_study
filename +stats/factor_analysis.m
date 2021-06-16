@@ -199,8 +199,8 @@ classdef factor_analysis < load_data.load_data
             end
             for i=1:size(obj.emo,2)
                 disEmo = cell2mat(arrayfun(@(x) x{:}(:,i), disParticipant, 'UniformOutput', false));
-                alphasCat(i,:) = splitapply(@cronbach,disEmo',groupings);
-                alphasWhole(i,1) = cronbach(disEmo');
+                alphasCat(i,:) = splitapply(@stats.factor_analysis.cronbach,disEmo',groupings);
+                alphasWhole(i,1) = stats.factor_analysis.cronbach(disEmo');
             end
             t_alpha = array2table([alphasWhole alphasCat],'VariableNames',[{'Global'}; obj.subgroupNames],'RowNames',obj.emoLabels);
             disp(t_alpha);
