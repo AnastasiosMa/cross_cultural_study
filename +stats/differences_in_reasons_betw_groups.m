@@ -1,13 +1,13 @@
-classdef mlh_emo_kruskalwallis < load_data.load_data
+classdef differences_in_reasons_betw_groups < load_data.load_data
     % exploring kruskalwallis based on mlh behavior
-    % example obj = stats.mlh_emo_kruskalwallis('responses_pilot/Music Listening Habits.csv','AllResponses'); do_kruskalwallis(obj);
+    % example obj = stats.differences_in_reasons_betw_groups('responses_pilot/Music Listening Habits.csv','AllResponses'); do_differences_in_reasons_betw_groups(obj);
     properties
         ReasonType = 'GeneralBehavior'% 'GeneralBehavior','SelectedTrack'
         Var = 'employmentLabels';%'employmentLabels','AgeCategory','EconomicSituation','Education','Employment','Gender','Musicianship'
     end
 
     methods
-        function obj = mlh_emo_kruskalwallis(dataPath,filterMethod)
+        function obj = differences_in_reasons_betw_groups(dataPath,filterMethod)
             if nargin < 2
                 error('ErrorTests:convertTest',...
               'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
@@ -18,7 +18,7 @@ classdef mlh_emo_kruskalwallis < load_data.load_data
             end
             obj = obj@load_data.load_data(dataPath, filterMethod);
         end
-        function obj = do_kruskalwallis(obj)
+        function obj = do_differences_in_reasons_betw_groups(obj)
             reasonLabels = {'for background purposes'
                             'to bring up memories'
                             'to have fun'
@@ -32,7 +32,7 @@ classdef mlh_emo_kruskalwallis < load_data.load_data
                             'Quite often'
                             'Very often'};
             N = 100;
-            %reducedTable = stats.mlh_emo_kruskalwallis.filterMostFrequentCategories(obj.dataTable,Var,N);
+            %reducedTable = stats.differences_in_reasons_betw_groups.filterMostFrequentCategories(obj.dataTable,Var,N);
             reducedTable = obj.dataTable;
             selectedGroupingVarLevels = unique(reducedTable.(obj.Var));
             if matches(obj.ReasonType,'GeneralBehavior')
