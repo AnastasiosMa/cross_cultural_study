@@ -1,5 +1,5 @@
 classdef correlate_reasons < load_data.load_data
-%example: obj = stats.correlate_reasons('responses_pilot/Music Listening Habits.csv','AllResponses'); do_correlate_reasons(obj);
+%example: obj = stats.correlate_reasons('responses_pilot/Music Listening Habits.csv','AllResponses'); do_mean_reasons(obj);do_correlate_reasons(obj);
 
     properties
     end
@@ -14,6 +14,48 @@ classdef correlate_reasons < load_data.load_data
                 filterMethod = [];
             end
             obj = obj@load_data.load_data(dataPath, filterMethod);
+        end
+        function obj = do_mean_reasons(obj)
+            close all
+            reasonLabels = {'for background purposes'
+                            'to bring up memories'
+                            'to have fun'
+                            'to feel music´s emotions'
+                            'to change your mood'
+                            'to express yourself'
+                            'to feel connected to other people'};
+            reasonTypes = {'General Behavior','Selected Track'};
+            % adding space before capital letters in variable names
+            filterMethod = regexprep(obj.filterMethod, '([A-Z])', ' $1');
+            for k = 1:numel(reasonTypes)
+                ReasonType = reasonTypes{k};
+
+                if matches(ReasonType,'General Behavior')
+                    tableFunctions = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,'Music_'));
+                elseif  matches(ReasonType,'Selected Track')
+                    tableFunctions = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,'Track_'));
+                end
+                X = tableFunctions{:,:};
+                X(any(isnan(X), 2), :) = [];% remove nan rows
+
+                data = mean(X)';
+                x = 1:numel(data);
+                errhigh = std(X);
+                errlow = errhigh;
+                figure
+                b = bar(x,data);
+                ylim([0 6]);
+                hold on
+
+                er = errorbar(x,data,errlow,errhigh);
+                er.Color = [0 0 0];
+                er.LineStyle = 'none';
+                set(gca,'xticklabel',reasonLabels)
+                myTitle = ['Mean and SD of reasons, ' ReasonType ',' filterMethod ' (N=' num2str(size(X,1)) ')'];
+                title(myTitle)
+                stats.correlate_reasons.savefigures(['figures/correlate_reasons/mean_reasons_' obj.filterMethod])
+                hold off
+            end
         end
         function obj = do_correlate_reasons(obj)
             close all
@@ -38,7 +80,7 @@ classdef correlate_reasons < load_data.load_data
                 X = tableFunctions{:,:};
                 X(any(isnan(X), 2), :) = [];% remove nan rows
                 [rho pval]= corr(X);
-                myTitle = ['Correlations between reason labels, ' ReasonType ',' filterMethod ' (N=' num2str(size(X,1)) ')'];
+                myTitle = ['Correlations between reasons, ' ReasonType ',' filterMethod ' (N=' num2str(size(X,1)) ')'];
                 figure
                 stats.correlate_reasons.plotCorrMat(rho,pval,reasonLabels,myTitle);
                 stats.correlate_reasons.savefigures(['figures/correlate_reasons/correlate_reasons_' obj.filterMethod])
