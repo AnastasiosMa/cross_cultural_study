@@ -4,7 +4,7 @@ classdef factor_analysis < load_data.load_data
     properties
         emo
         emoLabels
-        showPlotsFA = 1;
+        showPlotsAndTextFA = 0;
         distanceM = 'euclidean';
         removeLeastRatedTerms = 1;
         removalPercentage = .2;
@@ -34,7 +34,7 @@ classdef factor_analysis < load_data.load_data
             if obj.removeEmoTermsManually==1
                 obj = removeEmotionTerms(obj);
             end
-            if obj.showPlotsFA==1
+            if obj.showPlotsAndTextFA==1
                 obj = plot_means(obj);
                 obj = hierarchical_clust(obj);
                 %obj = vif(obj);
@@ -46,13 +46,15 @@ classdef factor_analysis < load_data.load_data
             if obj.removeLeastRatedTerms == 1
                 obj = remove_least_rated_terms(obj);
             end
-            if obj.showPlotsFA==1
+            if obj.showPlotsAndTextFA==1
                 obj = pca_emo(obj);
             end
             obj = fa(obj);
         end
         function obj = plot_means(obj)
-            disp('*** MEANS AND STANDARD DEVIATIONS ***')
+            if obj.showPlotsAndTextFA == 1
+                disp('*** MEANS AND STANDARD DEVIATIONS ***')
+            end
             t_m = table(obj.emoLabels', mean(obj.emo)',std(obj.emo)',...
                         'VariableNames',{'Emotion','Mean score','Standard deviation'});
             t_m = sortrows(t_m,2,'descend');
@@ -63,13 +65,17 @@ classdef factor_analysis < load_data.load_data
             xlabel('Emotions','FontSize',14),ylabel('Mean ratings','FontSize',14)
             title('Means and standard deviations of emotion terms')
             snapnow
-            disp(t_m);
+            if obj.showPlotsAndTextFA == 1
+                disp(t_m);
+            end
         end
         function obj = pca_emo(obj)
             [pcLoadings, pcSores, eigenvalues, ~, explainedVar] = pca(obj.emo);
             %make scree plot
-            disp('*** PCA ***')
-            disp('Find optimal number of PCs from scree plot and MAP criterion')
+            if obj.showPlotsAndTextFA == 1
+                disp('*** PCA ***')
+                disp('Find optimal number of PCs from scree plot and MAP criterion')
+            end
             figure
             subplot(1,2,1)
             plot(eigenvalues)
@@ -80,15 +86,21 @@ classdef factor_analysis < load_data.load_data
             xlabel('PCs');ylabel('Cumulative variance explained')
             title('Cumulative variance explained by PCs')
             snapnow
-            disp(['Selected ' num2str(obj.PCNum) ' Pcs']);
+            if obj.showPlotsAndTextFA == 1
+                disp(['Selected ' num2str(obj.PCNum) ' Pcs']);
+            end
             exp_var = cumsum(explainedVar(1:obj.PCNum));
-            disp([num2str(exp_var(end)) '% of variance explained by first ' ...
-                  num2str(obj.PCNum) ' Pcs']);
+            if obj.showPlotsAndTextFA == 1
+                disp([num2str(exp_var(end)) '% of variance explained by first ' ...
+                      num2str(obj.PCNum) ' Pcs']);
+            end
         end
         function  obj = fa(obj)
             [obj.FAcoeff, psi, ~, stats,obj.FAscores] = factoran(obj.emo,obj.PCNum,'Rotate','Varimax');
-            disp('*** FACTOR ANALYSIS (varimax rotation)***')
-            if obj.showPlotsFA==1
+            if obj.showPlotsAndTextFA == 1
+                disp('*** FACTOR ANALYSIS (varimax rotation)***')
+            end
+            if obj.showPlotsAndTextFA==1
                 figure
                 heatmap(obj.FAcoeff)
                 ax = gca; ax.YDisplayLabels = num2cell(obj.emoLabels);
@@ -98,10 +110,12 @@ classdef factor_analysis < load_data.load_data
         end
         function obj = hierarchical_clust(obj)
             linkageMethod = 'average';
-            disp('*** HIERARCHICAL CLUSTERING ***')
-            disp('Pairwises distances computed between EMOTION TERMS')
-            disp(['Distance: ' obj.distanceM])
-            disp(['Linkage Method: ' linkageMethod])
+            if obj.showPlotsAndTextFA == 1
+                disp('*** HIERARCHICAL CLUSTERING ***')
+                disp('Pairwises distances computed between EMOTION TERMS')
+                disp(['Distance: ' obj.distanceM])
+                disp(['Linkage Method: ' linkageMethod])
+            end
             d = pdist(obj.emo',obj.distanceM);
             l = linkage(d,linkageMethod);
             dendrogram(l,33,'orientation','right','labels',obj.emoLabels);
@@ -156,10 +170,14 @@ classdef factor_analysis < load_data.load_data
                 dCat{i} = cell2mat(arrayfun(@(x) x{:}(:,i), sqForm, 'UniformOutput', false));
                 alpha(i,1) = stats.factor_analysis.cronbach(dCat{i});
             end
-            disp('*** CROSS-CULTURAL CONSISTENCY OF EMOTION TERMS ***')
-            disp('Running Cronbachs Alpha on pairwise distances vector of each emotion between LANGUAGES')
+            if obj.showPlotsAndTextFA == 1
+                disp('*** CROSS-CULTURAL CONSISTENCY OF EMOTION TERMS ***')
+                disp('Running Cronbachs Alpha on pairwise distances vector of each emotion between LANGUAGES')
+            end
             t_alpha = array2table(alpha,'VariableNames',{'CronbachAlpha'},'RowNames',obj.emoLabels);
-            disp(sortrows(t_alpha,1,'descend'));
+            if obj.showPlotsAndTextFA == 1
+                disp(sortrows(t_alpha,1,'descend'));
+            end
         end
         function obj = removeEmotionTerms(obj)
             for i=1:length(obj.emoToRemove)
@@ -174,7 +192,7 @@ classdef factor_analysis < load_data.load_data
             %remove least rated emotions
             [b,idx] = sort(mean(obj.emo),'descend');
             obj.removedEmotions = obj.emoLabels(idx(end-removeEmoNum+1:end));
-            if obj.showPlotsFA==1
+            if obj.showPlotsAndTextFA==1
                 disp('*** REDUCING EMOTION LIST ***')
                 disp(['Removing ' num2str(obj.removalPercentage*100) '% of' ...
                       ' least rated emotions'])
@@ -203,7 +221,9 @@ classdef factor_analysis < load_data.load_data
                 alphasWhole(i,1) = stats.factor_analysis.cronbach(disEmo');
             end
             t_alpha = array2table([alphasWhole alphasCat],'VariableNames',[{'Global'}; obj.subgroupNames],'RowNames',obj.emoLabels);
-            disp(t_alpha);
+            if obj.showPlotsAndTextFA==1
+                disp(t_alpha);
+            end
         end
     end
     methods (Static)

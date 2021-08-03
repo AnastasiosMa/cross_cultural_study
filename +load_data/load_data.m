@@ -31,7 +31,7 @@ classdef load_data
         exportSubgroups = 1;
         subgroupIdxsPath = 'matchGenderAge/subsampling.mat'; %mat file with subgroup indexes
         createExcel = 0; %Create excel file with preprocessed data;
-        showPlots = 0; %Display plots, tables, and text
+        showPlotsAndText = 0; %Display plots, tables, and text
     end
     methods
         function obj = load_data(dataPath,filterMethod)
@@ -63,7 +63,7 @@ classdef load_data
             if ~strcmpi(obj.filterMethod,'AllResponses')
                 obj = create_groupTable(obj);
             end
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 obj = count_participants(obj);
                 obj = age_distribution(obj);
                 obj = gender_distribution(obj);
@@ -76,7 +76,7 @@ classdef load_data
             if exist(obj.subgroupIdxsPath)
                 obj = load_subgroups(obj);
             end
-            if obj.showPlots==1 && strcmpi(obj.filterMethod,'BalancedSubgroups')
+            if obj.showPlotsAndText==1 && strcmpi(obj.filterMethod,'BalancedSubgroups')
                 obj = age_subgroups(obj);
                 obj = gender_subgroups(obj);
             end
@@ -190,15 +190,19 @@ classdef load_data
         end
         function obj = discard_missing_data(obj)
             N = height(obj.dataTable);
-            disp('*** Discard Incomplete Responses ***')
-            disp(['---Total responses: ' num2str(N)]);
-            disp('Keeping only responses with complete MLH and Demographic parts')
+            if obj.showPlotsAndText == 1
+                disp('*** Discard Incomplete Responses ***')
+                disp(['---Total responses: ' num2str(N)]);
+                disp('Keeping only responses with complete MLH and Demographic parts')
+            end
             complete_responses = cell2mat(arrayfun(@(x) ~isempty(x{1}), ...
                 obj.dataTable{:,'Country_childhood'},'Uni',false));
             obj.dataTable = obj.dataTable(complete_responses,:);
             N = height(obj.dataTable);
-            disp(['---Complete responses: ' num2str(N)]);
-            disp('')
+            if obj.showPlotsAndText == 1
+                disp(['---Complete responses: ' num2str(N)]);
+                disp('')
+            end
         end
         function obj = age_distribution(obj)
             m_Age = mean(obj.dataTable.Age);
@@ -259,18 +263,22 @@ classdef load_data
             end
         end
         function obj = survey_duration(obj)
-            disp('---Removing responses with low survey duration');
-            disp(['Removing responses under: ' num2str(obj.durationThr) ' minutes']);
+            if obj.showPlotsAndText == 1
+                disp('---Removing responses with low survey duration');
+                disp(['Removing responses under: ' num2str(obj.durationThr) ' minutes']);
+            end
             obj.dataTable.Duration = minutes(obj.dataTable{:,'EndDate'} - ...
                 obj.dataTable{:,'StartDate'});
             %exclude responses above 30 minutes
             dur = obj.dataTable.Duration(obj.dataTable.Duration<30);
             if obj.excludeShortResponses
-                disp(['Excluding ' num2str(sum(obj.dataTable.Duration<obj.durationThr)) ...
-                    ' responses for short duration']);
+                if obj.showPlotsAndText == 1
+                    disp(['Excluding ' num2str(sum(obj.dataTable.Duration<obj.durationThr)) ...
+                          ' responses for short duration']);
+                end
                 obj.dataTable = obj.dataTable(~(obj.dataTable.Duration<obj.durationThr),:);
             end
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 figure,histogram(dur);
                 xline(obj.durationThr,'k--')
                 h = text(obj.durationThr+0.5,200,'Exclusion Threshold','FontSize',10);
@@ -285,8 +293,10 @@ classdef load_data
                 %HARDCODED LOCATION OF EMOTIONS
                 responderVariability(i) = std(table2array(obj.dataTable(i,16:48)));
             end
-            disp('---Removing responses based on Responder Variability')
-            disp('Threshold: 3 Median Absolute Deviations below median')
+            if obj.showPlotsAndText == 1
+                disp('---Removing responses based on Responder Variability')
+                disp('Threshold: 3 Median Absolute Deviations below median')
+            end
             %isoutlier(responderVariability)
             MAD_limit = 1.4826*median(abs(responderVariability-...
                 median(responderVariability)))*3; %Median Absolute deviation formula
@@ -294,8 +304,10 @@ classdef load_data
             %find responses with LOW variability
             outliers_idx = responderVariability<thresh;
             obj.dataTable = obj.dataTable(~outliers_idx,:);
-            disp(['Excluding ' num2str(sum(outliers_idx)) ' responses for low variability']);
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
+                disp(['Excluding ' num2str(sum(outliers_idx)) ' responses for low variability']);
+            end
+            if obj.showPlotsAndText == 1
                 figure,histogram(responderVariability)
                 xline(thresh,'k--')
                 h = text(thresh+0.03,100,'Exclusion Threshold','FontSize',10);
@@ -310,7 +322,7 @@ classdef load_data
             faultyIDs = table2array(readtable(obj.excludeResponsesPath));
             [c,idx] = setdiff(table2array(obj.dataTable(:,'RespondentID')),faultyIDs');
             obj.dataTable = obj.dataTable(idx,:);
-            if obj.showPlots==1
+            if obj.showPlotsAndText==1
                 disp('*** Outlier Detection ***')
                 disp('3 criteria: Survey duration, low variability, repeated entry(based on participant ID)')
                 disp('---Removing responses based on ID')
@@ -443,7 +455,7 @@ classdef load_data
             obj.subgroupNames = subsampling.countryNames;
             obj.groupingCategory = subsampling.groupingCategory;
             obj.subgroupIds = subsampling.subgroupIds;
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 disp(['*** AGE-GENDER Subsampling Results ***'])
                 disp(['Number of iterations: ' num2str(obj.repetitions)])
                 %disp(['Participants per country: ' num2str(length(obj.subgroupIds{1}))])
