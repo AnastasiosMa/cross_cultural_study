@@ -30,35 +30,37 @@ classdef explore_TIPI < load_data.load_data
             h = heatmap(c); % try to make it a heatmap so it's easier to navigate!
             h.XDisplayLabels = strrep(numericTnoNaNs.Properties.VariableNames,'_',' ');
             h.YDisplayLabels = strrep(numericTnoNaNs.Properties.VariableNames,'_',' ');
-
+            h.FontSize = 12;
             % show max highlights
             tf = eye(size(c))==1;
             c(tf) = NaN;
             [m,I] = max(c,[],'Linear');
-            highlights = eye(size(c));
-            highlights(triu(true(size(highlights)),1)) = NaN;
-            highlights(I) = m;
+            highlights = nan(size(c));
+            logPos = sign(m) == 1;
+            highlights(I(logPos)) = m(logPos);
 
             figure('units','normalized','outerposition',[0 0 1 1])
             h = heatmap(highlights); % try to make it a heatmap so it's easier to navigate!
             h.XDisplayLabels = strrep(numericTnoNaNs.Properties.VariableNames,'_',' ');
             h.YDisplayLabels = strrep(numericTnoNaNs.Properties.VariableNames,'_',' ');
-            title('max correlations')
+            h.FontSize = 12;
+            title('Maximum positive correlation of each variable')
 
 
             % show min highlights
             tf = eye(size(c))==1;
             c(tf) = NaN;
             [m,I] = min(c,[],'Linear');
-            highlights = eye(size(c));
-            highlights(triu(true(size(highlights)),1)) = NaN;
-            highlights(I) = m;
+            highlights = nan(size(c));
+            logNeg = sign(m) == -1;
+            highlights(I(logNeg)) = m(logNeg);
 
             figure('units','normalized','outerposition',[0 0 1 1])
             h = heatmap(highlights); % try to make it a heatmap so it's easier to navigate!
             h.XDisplayLabels = strrep(numericTnoNaNs.Properties.VariableNames,'_',' ');
             h.YDisplayLabels = strrep(numericTnoNaNs.Properties.VariableNames,'_',' ');
-            title('min correlations')
+            h.FontSize = 12;
+            title('Minimum negative correlation of each variable')
         end
     end
     methods (Static)

@@ -14,6 +14,7 @@ classdef load_data
         employmentLabels = {'Employed full-time', 'Employed part-time / casual', 'Self-employed', 'Student', 'Homemaker / caregiver', 'Retired', 'Currently out of work', 'Other', 'Prefer not to say','NA'}
         economicSituationLabels = {'Below Average','Average','Above Average'};
         TIPIscalesNames = {'Extraversion','Agreeableness','Conscientiousness','Emotional_Stability','Openness_Experiences'};
+        ICscalesNames = {'Horizontal_individualism','Vertical_individualism','Horizontal_collectivism','Vertical_collectivism'};
         durationThr = 4; %Duration Threshold to exclude responses (in minutes)
         excludeShortResponses = 1; %Exclude responses below duration threshold
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
@@ -191,6 +192,36 @@ classdef load_data
                 obj.dataTable = addvars(obj.dataTable,var,'NewVariableNames',obj.TIPIscalesNames{k});
             end
             obj.dataTable = removevars(obj.dataTable,tipiVars);
+            % add horizontal/vertical individualism collectivism scores (just based on computing
+            % means on the items that loaded most for each factor
+            % in Triandis and Gelfand, 1998)
+            icVars = {'I_dRatherDependOnMyselfThanOthers'
+                      'IRelyOnMyselfMostOfTheTime_IRarelyRelyOnOthers'
+                      'IOftenDo_myOwnThing_'
+                      'MyPersonalIdentity_IndependentOfOthers_IsVeryImportantToMe'
+                      'ItIsImportantThatIDoMyJobBetterThanOthers'
+                      'WinningIsEverything'
+                      'CompetitionIsTheLawOfNature'
+                      'WhenAnotherPersonDoesBetterThanIDo_IGetTenseAndAroused'
+                      'IfAColleagueGetsAPrize_IWouldFeelProud'
+                      'TheWell_beingOfMyColleaguesIsImportantToMe'
+                      'ToMe_PleasureIsSpendingTimeWithOthers'
+                      'IFeelGoodWhenICooperateWithOthers'
+                      'ParentsAndChildrenMustStayTogetherAsMuchAsPossible'
+                      'ItIsMyDutyToTakeCareOfMyFamily_EvenWhenIHaveToSacrificeWhatIWan'
+                      'FamilyMembersShouldStickTogether_NoMatterWhatSacrificesAreRequi'
+                      'ItIsImportantToMeThatIRespectTheDecisionsMadeByMyGroups'};
+            icVarsData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,icVars));
+            icCompleteLogical = any(~isnan(icVarsData{:,:}),2);
+            icVarsDataComplete = icVarsData(icCompleteLogical,:);
+            scalesItems = reshape(1:16,[],4);
+            for k = 1:numel(obj.ICscalesNames)
+                var = nan(size(icCompleteLogical));
+                scores = mean(icVarsDataComplete{:,scalesItems(:,k)},2);
+                var(icCompleteLogical) = scores;
+                obj.dataTable = addvars(obj.dataTable,var,'NewVariableNames',obj.ICscalesNames{k});
+            end
+            obj.dataTable = removevars(obj.dataTable,icVars);
         end
         function obj = count_participants(obj)
             N = height(obj.dataTable);
