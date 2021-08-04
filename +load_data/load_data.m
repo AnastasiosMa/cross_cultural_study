@@ -13,6 +13,7 @@ classdef load_data
         educationLabels = {'Elementary school','High school','Vocational training','Bachelor''s degree','Master''s degree','Doctoral degree','Other','Prefer not to say','NA'};
         employmentLabels = {'Employed full-time', 'Employed part-time / casual', 'Self-employed', 'Student', 'Homemaker / caregiver', 'Retired', 'Currently out of work', 'Other', 'Prefer not to say','NA'}
         economicSituationLabels = {'Below Average','Average','Above Average'};
+        TIPIscalesNames = {'Extraversion','Agreeableness','Conscientiousness','Emotional_Stability','Openness_Experiences'};
         durationThr = 4; %Duration Threshold to exclude responses (in minutes)
         excludeShortResponses = 1; %Exclude responses below duration threshold
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
@@ -161,7 +162,35 @@ classdef load_data
             % economic situation
             EconomicSituation = categorical(obj.dataTable.EconomicSituation,[1:3],obj.economicSituationLabels);
             obj.dataTable = addvars(obj.dataTable,EconomicSituation(:),'NewVariableNames','economicSituationLabels');
-            
+
+
+            % add TIPI scores
+            tipiVars = {'Extraverted_Enthusiastic',
+             'Critical_Quarrelsome',
+             'Dependable_Self_disciplined',
+             'Anxious_EasilyUpset',
+             'OpenToNewExperiences_Complex',
+             'Reserved_Quiet',
+             'Sympathetic_Warm',
+             'Disorganized_Careless',
+             'Calm_EmotionallyStable',
+             'Conventional_Uncreative'};
+            tipiVarsData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,tipiVars));
+            tipiCompleteLogical = any(~isnan(tipiVarsData{:,:}),2);
+            tipiVarsDataComplete = tipiVarsData(tipiCompleteLogical,:);
+            reverseScoredItemNums = 2:2:10;
+            tipiVarsDataCompleteRecoded = tipiVarsDataComplete;
+            recodeScheme = 7:-1:1;
+            reverseScoredItemNums = 2:2:10;
+            tipiVarsDataCompleteRecoded{:,reverseScoredItemNums} = recodeScheme(tipiVarsDataComplete{:,reverseScoredItemNums});
+            scalesItems = reshape(1:10,[],2);
+            for k = 1:numel(obj.TIPIscalesNames)
+                var = nan(size(tipiCompleteLogical));
+                scores = mean(tipiVarsDataCompleteRecoded{:,scalesItems(k,:)},2);
+                var(tipiCompleteLogical) = scores;
+                obj.dataTable = addvars(obj.dataTable,var,'NewVariableNames',obj.TIPIscalesNames{k});
+            end
+            obj.dataTable = removevars(obj.dataTable,tipiVars);
         end
         function obj = count_participants(obj)
             N = height(obj.dataTable);
@@ -365,7 +394,7 @@ classdef load_data
                     ageMetricMin = subsampling.groupSD;
                 end
                 minMetricMin = subsampling.minMetric;
-                
+
             else
                 minMetricMin = 6; %random large value
             end
