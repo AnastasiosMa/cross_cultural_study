@@ -1,10 +1,10 @@
-classdef explore_TIPI < load_data.load_data
-%example: obj = stats.explore_TIPI('responses_pilot/Music Listening Habits.csv','AllResponses');do_explore_TIPI(obj);
+classdef explore_data_correlations < load_data.load_data
+%example: obj = stats.explore_data_correlations('responses_pilot/Music Listening Habits.csv','AllResponses');do_explore_data_correlations(obj);
 
     properties
     end
     methods
-        function obj = explore_TIPI(dataPath,filterMethod)
+        function obj = explore_data_correlations(dataPath,filterMethod)
             if nargin < 2
                 error('ErrorTests:convertTest',...
                       'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
@@ -15,7 +15,7 @@ classdef explore_TIPI < load_data.load_data
             end
             obj = obj@load_data.load_data(dataPath, filterMethod);
         end
-        function obj = do_explore_TIPI(obj)
+        function obj = do_explore_data_correlations(obj)
             obj.dataTable = removevars(obj.dataTable,{'RespondentID','Childhood','Adulthood','Residence','Identity','Duration'});
             tipiCompleteLogical = ~any(isnan(obj.dataTable{:,matches(obj.dataTable.Properties.VariableNames,obj.TIPIscalesNames)}),2);
             dataTableTIPIcomplete = obj.dataTable(tipiCompleteLogical,:);
