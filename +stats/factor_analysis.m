@@ -1,5 +1,5 @@
 classdef factor_analysis < load_data.load_data
-%example obj = stats.factor_analysis('~/Desktop/ccstudy/responses_pilot/Music Listening Habits.csv','AllResponses')
+%example obj = stats.factor_analysis('responses_pilot/Music Listening Habits.csv','AllResponses')
 
     properties
         emo
