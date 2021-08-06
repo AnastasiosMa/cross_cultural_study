@@ -1,7 +1,8 @@
 classdef factor_analysis < load_data.load_data
-%example obj = stats.factor_analysis('responses_pilot/Music Listening Habits.csv','AllResponses')
+%example obj = stats.factor_analysis();obj = do_factor_analysis(obj)
 
     properties
+        dataTableInd = [16:48]; % emotion terms (obj.dataTable)
         emo
         emoLabels
         showPlotsAndTextFA = 0;
@@ -17,20 +18,21 @@ classdef factor_analysis < load_data.load_data
         FAscores
     end
     methods
-        function obj = factor_analysis(dataPath,filterMethod)
-            if nargin < 2
-                error('ErrorTests:convertTest',...
-                      'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
-            end
-            if nargin == 0
-                dataPath = [];
-                filterMethod = [];
-            end
-            obj = obj@load_data.load_data(dataPath,filterMethod);
-            %HARDCODED EMO locations
-            obj.emo = obj.dataTable{:,16:48};
-            obj.emoLabels = obj.dataTable.Properties.VariableNames(16:48);
-            obj = correct_emoLabels(obj);
+        function obj = factor_analysis(obj)
+        end
+        function obj = do_factor_analysis(obj)
+            % if nargin < 2
+            %     error('ErrorTests:convertTest',...
+            %           'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
+            % end
+            % if nargin == 0
+            %     dataPath = [];
+            %     filterMethod = [];
+            % end
+                obj=do_load_data(obj);
+                obj.emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);% emotion terms (obj.dataTable)
+                obj.emo = obj.dataTable{:,obj.dataTableInd};
+                obj = correct_emoLabels(obj);
             if obj.removeEmoTermsManually==1
                 obj = removeEmotionTerms(obj);
             end

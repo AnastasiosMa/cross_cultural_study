@@ -1,8 +1,9 @@
 classdef load_data
     %Load data
-    %example obj = load_data.load_data('responses_pilot/Music Listening Habits.csv','AllResponses')
+    %example obj = load_data.load_data();obj = do_load_data(obj);
     properties
-        dataPath
+        dataPath = 'responses_pilot/Music Listening Habits.csv';
+        filterMethod = 'AllResponses' % Accepted Inputs: 'AllResponses','BalancedSubgroups',
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable %table to be used in the analysis
         alldataTable %table with data from all responses
@@ -20,7 +21,6 @@ classdef load_data
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
         excludeResponsesFromFile = 1;
         excludeResponsesPath = 'responses_pilot/faulty ids.xlsx';
-        filterMethod %Accepted Inputs: 'AllResponses','BalancedSubgroups',
         %'UnbalancedSubgroups'
         createBalancedSubgroups = 0; % create subgroups through permutations
         groupingCategory = 'Country_childhood';
@@ -36,18 +36,10 @@ classdef load_data
         showPlotsAndText = 0; %Display plots, tables, and text
     end
     methods
-        function obj = load_data(dataPath,filterMethod)
+        function obj = load_data(obj)
+        end
+        function obj = do_load_data(obj)
             warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-             if nargin < 2
-                error('ErrorTests:convertTest',...
-              'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
-             end
-            if nargin == 0
-                dataPath = [];
-                filterMethod = [];
-            end
-            obj.dataPath = dataPath;
-            obj.filterMethod = filterMethod;
             obj = get_variable_names(obj);
             obj = correct_variables(obj);
             if obj.discardMissingData ==1
