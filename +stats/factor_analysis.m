@@ -1,5 +1,5 @@
 classdef factor_analysis < load_data.load_data
-%example obj = stats.factor_analysis();obj = do_factor_analysis(obj)
+%example obj = stats.factor_analysis();obj=do_load_data(obj);obj = do_factor_analysis(obj)
 
     properties
         dataTableInd = [16:48]; % emotion terms (obj.dataTable)
@@ -29,7 +29,7 @@ classdef factor_analysis < load_data.load_data
             %     dataPath = [];
             %     filterMethod = [];
             % end
-                obj=do_load_data(obj);
+                disp(obj.filterMethod)
                 obj.emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);% emotion terms (obj.dataTable)
                 obj.emo = obj.dataTable{:,obj.dataTableInd};
                 obj = correct_emoLabels(obj);

@@ -11,10 +11,12 @@ classdef factor_analysis_subgroups
         function obj = factor_analysis_subgroups(obj)
             a = stats.factor_analysis();
             a.filterMethod = 'AllResponses';
-            a = stats.factor_analysis();
-            a.filterMethod = 'BalancedSubgroups';
-            b = stats.factor_analysis();
+            a = do_load_data(a);
             obj.Res{1} = a.do_factor_analysis;
+
+            b = stats.factor_analysis();
+            b.filterMethod = 'BalancedSubgroups';
+            b = do_load_data(b);
             obj.Res{2} = b.do_factor_analysis;
 
             obj = fa_compare(obj);
