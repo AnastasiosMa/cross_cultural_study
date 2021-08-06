@@ -186,12 +186,19 @@ classdef load_data
             tipiVarsDataCompleteRecoded{:,reverseScoredItemNums} = recodeScheme(tipiVarsDataComplete{:,reverseScoredItemNums});
             scalesItems = reshape(1:10,[],2);
             for k = 1:numel(obj.TIPIscalesNames)
-                var = nan(size(tipiCompleteLogical));
+                curVar = nan(size(tipiCompleteLogical));
                 scores = mean(tipiVarsDataCompleteRecoded{:,scalesItems(k,:)},2);
-                var(tipiCompleteLogical) = scores;
-                obj.dataTable = addvars(obj.dataTable,var,'NewVariableNames',obj.TIPIscalesNames{k});
+                TIPI(:,k) = scores;
+                curVar(tipiCompleteLogical) = scores;
+                obj.dataTable = addvars(obj.dataTable,curVar,'NewVariableNames',obj.TIPIscalesNames{k});
             end
+            [m I] =  max(TIPI,[],2,'includenan');
+            curVar = strings(size(tipiCompleteLogical));
+            curVar(tipiCompleteLogical) = obj.TIPIscalesNames(I);
+            obj.dataTable = addvars(obj.dataTable,categorical(curVar),'NewVariableNames','TIPICategory');
+
             obj.dataTable = removevars(obj.dataTable,tipiVars);
+
             % add horizontal/vertical individualism collectivism scores (just based on computing
             % means on the items that loaded most for each factor
             % in Triandis and Gelfand, 1998)
@@ -216,11 +223,16 @@ classdef load_data
             icVarsDataComplete = icVarsData(icCompleteLogical,:);
             scalesItems = reshape(1:16,[],4);
             for k = 1:numel(obj.ICscalesNames)
-                var = nan(size(icCompleteLogical));
+                curVar = nan(size(icCompleteLogical));
                 scores = mean(icVarsDataComplete{:,scalesItems(:,k)},2);
-                var(icCompleteLogical) = scores;
-                obj.dataTable = addvars(obj.dataTable,var,'NewVariableNames',obj.ICscalesNames{k});
+                IC(:,k) = scores;
+                curVar(icCompleteLogical) = scores;
+                obj.dataTable = addvars(obj.dataTable,curVar,'NewVariableNames',obj.ICscalesNames{k});
             end
+            [m I] =  max(IC,[],2,'includenan');
+            curVar = strings(size(icCompleteLogical));
+            curVar(icCompleteLogical) = obj.ICscalesNames(I);
+            obj.dataTable = addvars(obj.dataTable,categorical(curVar),'NewVariableNames','IndColCategory');
             obj.dataTable = removevars(obj.dataTable,icVars);
         end
         function obj = count_participants(obj)
