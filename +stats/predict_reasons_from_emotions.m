@@ -43,7 +43,7 @@ classdef predict_reasons_from_emotions < load_data.load_data
                 set(0,'DefaultFigureVisible','on')
                 fa.FAscores(any(isnan(tableFunctions{:,:}), 2), :) = [];
                 for j = 1:numel(reasonLabels)
-                    FactorNames = {'TendernessLove','TriumphBeauty','PainSadness','PleasureHappiness',reasonLabels{j}};
+                    FactorNames = {'TendernessLove','TriumphEnergy','PainSadness','PleasureHappiness',reasonLabels{j}};
                                     mdl{j} = fitlm(zscore(fa.FAscores),zscore(Y(:,j)),'VarNames',FactorNames);
                                     disp(['- ' upper(ReasonType)])
                                     disp(mdl{j});
