@@ -190,7 +190,7 @@ classdef load_data
             curVar(tipiCompleteLogical) = obj.TIPIscalesNames(I);
             obj.dataTable = addvars(obj.dataTable,categorical(curVar),'NewVariableNames','TIPICategory');
 
-            obj.dataTable = removevars(obj.dataTable,tipiVars);
+            %obj.dataTable = removevars(obj.dataTable,tipiVars);
 
             % add horizontal/vertical individualism collectivism scores (just based on computing
             % means on the items that loaded most for each factor
