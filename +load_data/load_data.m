@@ -16,6 +16,7 @@ classdef load_data
         economicSituationLabels = {'Below Average','Average','Above Average'};
         TIPIscalesNames = {'Extraversion','Agreeableness','Conscientiousness','Emotional_Stability','Openness_Experiences'};
         ICscalesNames = {'Horizontal_individualism','Vertical_individualism','Horizontal_collectivism','Vertical_collectivism'};
+        icVars
         durationThr = 4; %Duration Threshold to exclude responses (in minutes)
         excludeShortResponses = 1; %Exclude responses below duration threshold
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
@@ -194,7 +195,7 @@ classdef load_data
             % add horizontal/vertical individualism collectivism scores (just based on computing
             % means on the items that loaded most for each factor
             % in Triandis and Gelfand, 1998)
-            icVars = {'I_dRatherDependOnMyselfThanOthers'
+            obj.icVars = {'I_dRatherDependOnMyselfThanOthers'
                       'IRelyOnMyselfMostOfTheTime_IRarelyRelyOnOthers'
                       'IOftenDo_myOwnThing_'
                       'MyPersonalIdentity_IndependentOfOthers_IsVeryImportantToMe'
@@ -210,7 +211,7 @@ classdef load_data
                       'ItIsMyDutyToTakeCareOfMyFamily_EvenWhenIHaveToSacrificeWhatIWan'
                       'FamilyMembersShouldStickTogether_NoMatterWhatSacrificesAreRequi'
                       'ItIsImportantToMeThatIRespectTheDecisionsMadeByMyGroups'};
-            icVarsData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,icVars));
+            icVarsData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,obj.icVars));
             icCompleteLogical = any(~isnan(icVarsData{:,:}),2);
             icVarsDataComplete = icVarsData(icCompleteLogical,:);
             scalesItems = reshape(1:16,[],4);
@@ -225,7 +226,7 @@ classdef load_data
             curVar = strings(size(icCompleteLogical));
             curVar(icCompleteLogical) = obj.ICscalesNames(I);
             obj.dataTable = addvars(obj.dataTable,categorical(curVar),'NewVariableNames','IndColCategory');
-            obj.dataTable = removevars(obj.dataTable,icVars);
+            %obj.dataTable = removevars(obj.dataTable,icVars);
         end
         function obj = count_participants(obj)
             N = height(obj.dataTable);

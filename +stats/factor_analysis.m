@@ -3,6 +3,7 @@ classdef factor_analysis < load_data.load_data
 
     properties
         dataTableInd = [16:48]; % emotion terms (obj.dataTable)
+        rotateMethod = 'Varimax'
         emo
         emoLabels
         showPlotsAndTextFA = 0;
@@ -29,7 +30,6 @@ classdef factor_analysis < load_data.load_data
             %     dataPath = [];
             %     filterMethod = [];
             % end
-                disp(obj.filterMethod)
                 obj.emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);% emotion terms (obj.dataTable)
                 obj.emo = obj.dataTable{:,obj.dataTableInd};
                 obj = correct_emoLabels(obj);
@@ -98,9 +98,9 @@ classdef factor_analysis < load_data.load_data
             end
         end
         function  obj = fa(obj)
-            [obj.FAcoeff, psi, ~, stats,obj.FAscores] = factoran(obj.emo,obj.PCNum,'Rotate','Varimax');
+            [obj.FAcoeff, psi, ~, stats,obj.FAscores] = factoran(obj.emo,obj.PCNum,'Rotate',obj.rotateMethod);
             if obj.showPlotsAndTextFA == 1
-                disp('*** FACTOR ANALYSIS (varimax rotation)***')
+                disp(['*** FACTOR ANALYSIS (' obj.rotateMethod 'rotation)***'])
             end
             if obj.showPlotsAndTextFA==1
                 figure
