@@ -18,6 +18,7 @@ classdef load_data
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
         excludeResponsesFromFile = 1;
         excludeResponsesPath = 'responses_pilot/faulty ids.xlsx';
+        excludeAge = 16;
         filterMethod %Accepted Inputs: 'AllResponses','BalancedSubgroups',
         %'UnbalancedSubgroups'
         createBalancedSubgroups = 0; % create subgroups through permutations
@@ -48,7 +49,11 @@ classdef load_data
                 obj = discard_missing_data(obj);
             end
             if obj.excludeResponsesFromFile==1
+                disp('*** Outlier Removal ***')
+                disp('4 criteria: Survey duration, low variability, age, repeated entry(based on participant ID)')
+                obj = find_repeated_responses(obj);
                 obj = exclude_from_file(obj);
+                obj = find_repeated_responses(obj);
             end
             if obj.excludeShortResponses ==1
                 obj = survey_duration(obj);
@@ -56,13 +61,16 @@ classdef load_data
             if  obj.excludeRepetativeResponses
                 obj = responderVariability(obj);
             end
-            if ~strcmpi(obj.filterMethod,'AllResponses')
-                obj = create_groupTable(obj);
-            end
+            %if ~strcmpi(obj.filterMethod,'AllResponses')
+-           %     obj = create_groupTable(obj);
+-           %end
+            obj = exclude_age(obj);
+            obj = create_groupTable(obj);
             if obj.showPlots == 1
                 obj = count_participants(obj);
                 obj = age_distribution(obj);
                 obj = gender_distribution(obj);
+                %obj = country_venn_diagrams(obj);
             end
             if strcmpi(obj.filterMethod,'BalancedSubgroups')...
                     && obj.createBalancedSubgroups == 1
@@ -70,7 +78,7 @@ classdef load_data
                 obj = create_balanced_subgroups(obj);
             end
             if exist(obj.subgroupIdxsPath)
-                obj = load_subgroups(obj);
+                %obj = load_subgroups(obj);
             end
             if obj.showPlots==1 && strcmpi(obj.filterMethod,'BalancedSubgroups')
                 obj = age_subgroups(obj);
@@ -186,15 +194,19 @@ classdef load_data
         end
         function obj = discard_missing_data(obj)
             N = height(obj.dataTable);
-            disp('*** Discard Incomplete Responses ***')
-            disp(['---Total responses: ' num2str(N)]);
-            disp('Keeping only responses with complete MLH and Demographic parts')
+            if obj.showPlots == 1
+                disp('*** Discard Incomplete Responses ***')
+                disp(['---Total responses: ' num2str(N)]);
+                disp('Keeping only responses with complete MLH and Demographic parts')
+            end
             complete_responses = cell2mat(arrayfun(@(x) ~isempty(x{1}), ...
                 obj.dataTable{:,'Country_childhood'},'Uni',false));
             obj.dataTable = obj.dataTable(complete_responses,:);
             N = height(obj.dataTable);
-            disp(['---Complete responses: ' num2str(N)]);
-            disp('')
+            if obj.showPlots == 1
+                disp(['---Complete responses: ' num2str(N)]);
+                disp('')
+            end
         end
         function obj = age_distribution(obj)
             m_Age = mean(obj.dataTable.Age);
@@ -224,11 +236,6 @@ classdef load_data
             end
             disp(array2table(stats_c,'VariableNames',{'Mean','SD'},'RowNames',countries_N))
             figure
-            histogram(obj.dataTable.Age);
-            xlabel('Age (in years)'); ylabel('Number of responders');
-            title('Age Histogram')
-            snapnow
-            figure
             boxplot(obj.dataTable.Age(idx_c),obj.dataTable.Country_childhood(idx_c))
             xlabel('Countries');ylabel('Age');xtickangle(45)
             title('Boxplots per Country');
@@ -238,7 +245,6 @@ classdef load_data
             disp('*** GENDER distribution ***')
             gender_N = groupcounts(obj.dataTable,'Gender');
             disp(gender_N)
-            if strcmpi(obj.filterMethod,'BalancedSubgroups')
                 %calculate gender balance in each group
                 for i=1:length(obj.subgroupNames)
                     genderG = groupcounts(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
@@ -252,24 +258,57 @@ classdef load_data
                     'Female (%)','Male (%)'], 'RowNames',obj.subgroupNames);
                 disp('Gender balance for each country')
                 disp(t);
+        end
+        function obj = country_venn_diagrams(obj)
+            % all participants
+            v1 = find(string(obj.dataTable.Country_childhood)==string(obj.dataTable.Country_adulthood));
+            v2 = find(string(obj.dataTable.Country_childhood)==string(obj.dataTable.Country_identity));    
+            v3 = find(string(obj.dataTable.Country_identity)==string(obj.dataTable.Country_adulthood));    
+            v4 = intersect(v1,v2);
+            N = height(obj.dataTable);
+            figure
+            venn([N,N,N],[length(v1),length(v2),length(v3),length(v4)],...
+                'ErrMinMode','ChowRodgers');
+           legend({'Childhood','Adulthood','Identity'})
+           title('Venn Diagram of Country overlap (All participants)')
+           snapnow
+           %for each country
+                       groupNum = length(obj.subgroupNames);
+            for i = 1:length(obj.subgroupNames)
+                idx_child = find(strcmpi(obj.groupTable.Country_childhood,obj.subgroupNames{i}));
+                idx_adult = find(strcmpi(obj.groupTable.Country_adulthood,obj.subgroupNames{i}));
+                idx_identity = find(strcmpi(obj.groupTable.Country_identity,obj.subgroupNames{i}));
+           v1 = intersect(idx_child,idx_adult);
+           v2 = intersect(idx_child,idx_identity);
+           v3 = intersect(idx_identity,idx_adult);
+           v4 = intersect(v1,v2);
+           subplot(3,ceil(groupNum/3),i)
+           title(obj.subgroupNames{i})
+           venn([length(idx_child),length(idx_adult),length(idx_identity)],...
+               [length(v1),length(v2),length(v3),length(v4)],'ErrMinMode','ChowRodgers');
+           legend({'Childhood','Adulthood','Identity'})
             end
         end
         function obj = survey_duration(obj)
-            disp('---Removing responses with low survey duration');
-            disp(['Removing responses under: ' num2str(obj.durationThr) ' minutes']);
             obj.dataTable.Duration = minutes(obj.dataTable{:,'EndDate'} - ...
                 obj.dataTable{:,'StartDate'});
             %exclude responses above 30 minutes
             dur = obj.dataTable.Duration(obj.dataTable.Duration<30);
+            if obj.showPlots == 1
+                disp('---Removing responses with low survey duration');
+                disp(['Removing responses under: ' num2str(obj.durationThr) ' minutes']);
+            end
             if obj.excludeShortResponses
-                disp(['Excluding ' num2str(sum(obj.dataTable.Duration<obj.durationThr)) ...
-                    ' responses for short duration']);
+                if obj.showPlots == 1
+                    disp(['Excluding ' num2str(sum(obj.dataTable.Duration<obj.durationThr)) ...
+                        ' responses for short duration']);
+                end
                 obj.dataTable = obj.dataTable(~(obj.dataTable.Duration<obj.durationThr),:);
             end
             if obj.showPlots == 1
                 figure,histogram(dur);
                 xline(obj.durationThr,'k--')
-                h = text(obj.durationThr+0.5,200,'Exclusion Threshold','FontSize',10);
+                h = text(obj.durationThr+0.5,150,'Exclusion Threshold','FontSize',10);
                 set(h,'Rotation',90);
                 xlabel('Duration in minutes'); ylabel('Number of responses')
                 title('Survey Duration')
@@ -281,8 +320,6 @@ classdef load_data
                 %HARDCODED LOCATION OF EMOTIONS
                 responderVariability(i) = std(table2array(obj.dataTable(i,16:48)));
             end
-            disp('---Removing responses based on Responder Variability')
-            disp('Threshold: 3 Median Absolute Deviations below median')
             %isoutlier(responderVariability)
             MAD_limit = 1.4826*median(abs(responderVariability-...
                 median(responderVariability)))*3; %Median Absolute deviation formula
@@ -290,8 +327,10 @@ classdef load_data
             %find responses with LOW variability
             outliers_idx = responderVariability<thresh;
             obj.dataTable = obj.dataTable(~outliers_idx,:);
-            disp(['Excluding ' num2str(sum(outliers_idx)) ' responses for low variability']);
             if obj.showPlots == 1
+                disp('---Removing responses based on Responder Variability')
+                disp('Threshold: 3 Median Absolute Deviations below median')
+                disp(['Excluding ' num2str(sum(outliers_idx)) ' responses for low variability']);
                 figure,histogram(responderVariability)
                 xline(thresh,'k--')
                 h = text(thresh+0.03,100,'Exclusion Threshold','FontSize',10);
@@ -299,16 +338,49 @@ classdef load_data
                 xlabel('Standard deviation')
                 ylabel('Number of responders')
                 title('Standard deviation of emotion ratings for each responder')
+                snapnow
             end
+        end
+        function obj = exclude_age(obj)
+            idx = find(obj.dataTable.Age>=obj.excludeAge);
+            if obj.showPlots == 1
+                disp('---Removing responses based on Age')
+                disp(['Age Threshold: ' num2str(obj.excludeAge)])
+                disp(['Excluding ' num2str(height(obj.dataTable)-length(idx)) ' responses'])
+                figure
+            histogram(obj.dataTable.Age);
+            xline(obj.excludeAge,'k--')
+            h = text(obj.excludeAge-3,50,'Exclusion Threshold','FontSize',10);
+            set(h,'Rotation',90);
+            xlabel('Age (in years)'); ylabel('Number of responders');
+            title('Age Histogram')
             snapnow
+            end
+            obj.dataTable = obj.dataTable(idx,:);
+        end
+        function obj = find_repeated_responses(obj)
+            [artistCount, artist] = groupcounts(obj.dataTable.Artist);
+            artistT = table(artistCount, artist,'VariableNames',{'Count','Artist'});
+            artistT = sortrows(artistT,1,'descend');
+            topArtist = artistT(1:10,:);
+            dur = duration(0,30,0);
+            if obj.showPlots ==1
+                figure, h=histogram(obj.dataTable.EndDate,'BinWidth',dur);
+                title('Histogram of responses in time')
+                snapnow
+                [BinCounts,idx] = sort(h.BinCounts,'descend');
+                timesToCheck = h.BinEdges(idx(1:20));
+                BinCounts = BinCounts(1:30);
+                %disp(timesToCheck')
+                disp('Top Artists')
+                disp(topArtist)
+            end
         end
         function obj = exclude_from_file(obj)
             faultyIDs = table2array(readtable(obj.excludeResponsesPath));
             [c,idx] = setdiff(table2array(obj.dataTable(:,'RespondentID')),faultyIDs');
             obj.dataTable = obj.dataTable(idx,:);
             if obj.showPlots==1
-                disp('*** Outlier Detection ***')
-                disp('3 criteria: Survey duration, low variability, repeated entry(based on participant ID)')
                 disp('---Removing responses based on ID')
                 disp([num2str(length(faultyIDs)) ' responses removed from ID'])
             end
@@ -499,11 +571,11 @@ classdef load_data
             figure, hold on
             p=plot([pre(:,1),post(:,1)]);
             yline(m_Age, 'k--')
-            text(length(obj.subgroupNames)/2,m_Age-0.3,'Grand Mean')
+            text(length(countries_N)/2,m_Age-0.3,'Grand Mean')
             ylabel('Mean age'); xlabel('Country (Childhood)');
             title('Age distribution Pre-Post subsampling')
             legend(p,'Pre','Post')
-            set(gca,'XTick',1:length(obj.subgroupNames),'XTickLabels',obj.subgroupNames),xtickangle(45)
+            set(gca,'XTick',1:length(countries_N),'XTickLabels',countries_N),xtickangle(45)
             hold off
             %plotstds
             %errorbar([pre(:,1),post(:,1)],[pre(:,2),post(:,2)]/2,'-s','markersize',7,...

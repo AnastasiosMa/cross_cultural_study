@@ -1,6 +1,6 @@
 classdef factor_analysis_subgroups
     %Compare factor analysis with subgroups and without
-    %example obj = stats.factor_analysis_subgroups('~/ccstudy/responses_pilot/Music Listening Habits.csv')
+    %example obj = stats.factor_analysis_subgroups('~/Desktop/ccstudy/responses_pilot/Music Listening Habits.csv')
     
     properties
         Res
