@@ -102,7 +102,7 @@ classdef factor_analysis < load_data.load_data
             end
         end
         function  obj = fa(obj)
-            [obj.FAcoeff, psi, ~, stats,obj.FAscores] = factoran(obj.emo,obj.PCNum,'Rotate',obj.rotateMethod);
+            [obj.FAcoeff, psi, ~, stats,obj.FAScores] = factoran(obj.emo,obj.PCNum,'Rotate',obj.rotateMethod);
             if obj.showPlotsAndTextFA == 1
                 disp(['*** FACTOR ANALYSIS (' obj.rotateMethod 'rotation)***'])
             end

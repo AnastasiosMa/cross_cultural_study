@@ -35,7 +35,7 @@ classdef load_data
         exportSubgroups = 1;
         subgroupIdxsPath = 'matchGenderAge/subsampling.mat'; %mat file with subgroup indexes
         createExcel = 0; %Create excel file with preprocessed data;
-        showPlotsAndText = 1; %Display plots, tables, and text
+        showPlotsAndText = 0; %Display plots, tables, and text
     end
     methods
         function obj = load_data(obj)
