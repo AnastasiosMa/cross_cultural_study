@@ -3,7 +3,7 @@ classdef load_data
     %example obj = load_data.load_data();obj = do_load_data(obj);
     properties
         dataPath = 'responses_pilot/Music Listening Habits.csv';
-        filterMethod = 'AllResponses' % Accepted Inputs: 'AllResponses','BalancedSubgroups',
+        filterMethod = 'AllResponses' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups'
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable %table to be used in the analysis
         alldataTable %table with data from all responses
@@ -23,8 +23,7 @@ classdef load_data
         excludeResponsesFromFile = 1;
         excludeResponsesPath = 'responses_pilot/faulty ids.xlsx';
         excludeAge = 16;
-        filterMethod %Accepted Inputs: 'AllResponses','BalancedSubgroups',
-        %'UnbalancedSubgroups'
+        %filterMethod %Accepted Inputs: 'AllResponses','BalancedSubgroups',
         createBalancedSubgroups = 0; % create subgroups through permutations
         groupingCategory = 'Country_childhood';
         balanceVariables = {'Gender'}; %variables to be equalised across groups
@@ -36,7 +35,7 @@ classdef load_data
         exportSubgroups = 1;
         subgroupIdxsPath = 'matchGenderAge/subsampling.mat'; %mat file with subgroup indexes
         createExcel = 0; %Create excel file with preprocessed data;
-        showPlotsAndText = 0; %Display plots, tables, and text
+        showPlotsAndText = 1; %Display plots, tables, and text
     end
     methods
         function obj = load_data(obj)
@@ -76,8 +75,8 @@ classdef load_data
                 obj = get_baselines(obj);
                 obj = create_balanced_subgroups(obj);
             end
-            if exist(obj.subgroupIdxsPath)
-                %obj = load_subgroups(obj);
+            if exist(obj.subgroupIdxsPath) && strcmpi(obj.filterMethod,'BalancedSubgroups')
+                obj = load_balanced_subgroups(obj);
             end
             if obj.showPlotsAndText==1 && strcmpi(obj.filterMethod,'BalancedSubgroups')
                 obj = age_subgroups(obj);
@@ -164,19 +163,19 @@ classdef load_data
             % economic situation
             EconomicSituation = categorical(obj.dataTable.EconomicSituation,[1:3],obj.economicSituationLabels);
             obj.dataTable = addvars(obj.dataTable,EconomicSituation(:),'NewVariableNames','economicSituationLabels');
-
-
+            
+            
             % add TIPI scores
             tipiVars = {'Extraverted_Enthusiastic',
-             'Critical_Quarrelsome',
-             'Dependable_Self_disciplined',
-             'Anxious_EasilyUpset',
-             'OpenToNewExperiences_Complex',
-             'Reserved_Quiet',
-             'Sympathetic_Warm',
-             'Disorganized_Careless',
-             'Calm_EmotionallyStable',
-             'Conventional_Uncreative'};
+                'Critical_Quarrelsome',
+                'Dependable_Self_disciplined',
+                'Anxious_EasilyUpset',
+                'OpenToNewExperiences_Complex',
+                'Reserved_Quiet',
+                'Sympathetic_Warm',
+                'Disorganized_Careless',
+                'Calm_EmotionallyStable',
+                'Conventional_Uncreative'};
             tipiVarsData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,tipiVars));
             tipiCompleteLogical = any(~isnan(tipiVarsData{:,:}),2);
             tipiVarsDataComplete = tipiVarsData(tipiCompleteLogical,:);
@@ -197,28 +196,28 @@ classdef load_data
             curVar = strings(size(tipiCompleteLogical));
             curVar(tipiCompleteLogical) = obj.TIPIscalesNames(I);
             obj.dataTable = addvars(obj.dataTable,categorical(curVar),'NewVariableNames','TIPICategory');
-
+            
             %obj.dataTable = removevars(obj.dataTable,tipiVars);
-
+            
             % add horizontal/vertical individualism collectivism scores (just based on computing
             % means on the items that loaded most for each factor
             % in Triandis and Gelfand, 1998)
             obj.icVars = {'I_dRatherDependOnMyselfThanOthers'
-                      'IRelyOnMyselfMostOfTheTime_IRarelyRelyOnOthers'
-                      'IOftenDo_myOwnThing_'
-                      'MyPersonalIdentity_IndependentOfOthers_IsVeryImportantToMe'
-                      'ItIsImportantThatIDoMyJobBetterThanOthers'
-                      'WinningIsEverything'
-                      'CompetitionIsTheLawOfNature'
-                      'WhenAnotherPersonDoesBetterThanIDo_IGetTenseAndAroused'
-                      'IfAColleagueGetsAPrize_IWouldFeelProud'
-                      'TheWell_beingOfMyColleaguesIsImportantToMe'
-                      'ToMe_PleasureIsSpendingTimeWithOthers'
-                      'IFeelGoodWhenICooperateWithOthers'
-                      'ParentsAndChildrenMustStayTogetherAsMuchAsPossible'
-                      'ItIsMyDutyToTakeCareOfMyFamily_EvenWhenIHaveToSacrificeWhatIWan'
-                      'FamilyMembersShouldStickTogether_NoMatterWhatSacrificesAreRequi'
-                      'ItIsImportantToMeThatIRespectTheDecisionsMadeByMyGroups'};
+                'IRelyOnMyselfMostOfTheTime_IRarelyRelyOnOthers'
+                'IOftenDo_myOwnThing_'
+                'MyPersonalIdentity_IndependentOfOthers_IsVeryImportantToMe'
+                'ItIsImportantThatIDoMyJobBetterThanOthers'
+                'WinningIsEverything'
+                'CompetitionIsTheLawOfNature'
+                'WhenAnotherPersonDoesBetterThanIDo_IGetTenseAndAroused'
+                'IfAColleagueGetsAPrize_IWouldFeelProud'
+                'TheWell_beingOfMyColleaguesIsImportantToMe'
+                'ToMe_PleasureIsSpendingTimeWithOthers'
+                'IFeelGoodWhenICooperateWithOthers'
+                'ParentsAndChildrenMustStayTogetherAsMuchAsPossible'
+                'ItIsMyDutyToTakeCareOfMyFamily_EvenWhenIHaveToSacrificeWhatIWan'
+                'FamilyMembersShouldStickTogether_NoMatterWhatSacrificesAreRequi'
+                'ItIsImportantToMeThatIRespectTheDecisionsMadeByMyGroups'};
             icVarsData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,obj.icVars));
             icCompleteLogical = any(~isnan(icVarsData{:,:}),2);
             icVarsDataComplete = icVarsData(icCompleteLogical,:);
@@ -314,7 +313,8 @@ classdef load_data
             disp('*** GENDER distribution ***')
             gender_N = groupcounts(obj.dataTable,'Gender');
             disp(gender_N)
-                %calculate gender balance in each group
+            %calculate gender balance in each group
+            if ~strcmpi(obj.filterMethod,'AllResponses')
                 for i=1:length(obj.subgroupNames)
                     genderG = groupcounts(obj.groupTable(matches(obj.groupTable.(obj.groupingCategory),...
                         obj.subgroupNames{i}),'Gender'),'Gender');
@@ -327,35 +327,36 @@ classdef load_data
                     'Female (%)','Male (%)'], 'RowNames',obj.subgroupNames);
                 disp('Gender balance for each country')
                 disp(t);
+            end
         end
         function obj = country_venn_diagrams(obj)
             % all participants
             v1 = find(string(obj.dataTable.Country_childhood)==string(obj.dataTable.Country_adulthood));
-            v2 = find(string(obj.dataTable.Country_childhood)==string(obj.dataTable.Country_identity));    
-            v3 = find(string(obj.dataTable.Country_identity)==string(obj.dataTable.Country_adulthood));    
+            v2 = find(string(obj.dataTable.Country_childhood)==string(obj.dataTable.Country_identity));
+            v3 = find(string(obj.dataTable.Country_identity)==string(obj.dataTable.Country_adulthood));
             v4 = intersect(v1,v2);
             N = height(obj.dataTable);
             figure
             venn([N,N,N],[length(v1),length(v2),length(v3),length(v4)],...
                 'ErrMinMode','ChowRodgers');
-           legend({'Childhood','Adulthood','Identity'})
-           title('Venn Diagram of Country overlap (All participants)')
-           snapnow
-           %for each country
-                       groupNum = length(obj.subgroupNames);
+            legend({'Childhood','Adulthood','Identity'})
+            title('Venn Diagram of Country overlap (All participants)')
+            snapnow
+            %for each country
+            groupNum = length(obj.subgroupNames);
             for i = 1:length(obj.subgroupNames)
                 idx_child = find(strcmpi(obj.groupTable.Country_childhood,obj.subgroupNames{i}));
                 idx_adult = find(strcmpi(obj.groupTable.Country_adulthood,obj.subgroupNames{i}));
                 idx_identity = find(strcmpi(obj.groupTable.Country_identity,obj.subgroupNames{i}));
-           v1 = intersect(idx_child,idx_adult);
-           v2 = intersect(idx_child,idx_identity);
-           v3 = intersect(idx_identity,idx_adult);
-           v4 = intersect(v1,v2);
-           subplot(3,ceil(groupNum/3),i)
-           title(obj.subgroupNames{i})
-           venn([length(idx_child),length(idx_adult),length(idx_identity)],...
-               [length(v1),length(v2),length(v3),length(v4)],'ErrMinMode','ChowRodgers');
-           legend({'Childhood','Adulthood','Identity'})
+                v1 = intersect(idx_child,idx_adult);
+                v2 = intersect(idx_child,idx_identity);
+                v3 = intersect(idx_identity,idx_adult);
+                v4 = intersect(v1,v2);
+                subplot(3,ceil(groupNum/3),i)
+                title(obj.subgroupNames{i})
+                venn([length(idx_child),length(idx_adult),length(idx_identity)],...
+                    [length(v1),length(v2),length(v3),length(v4)],'ErrMinMode','ChowRodgers');
+                legend({'Childhood','Adulthood','Identity'})
             end
         end
         function obj = survey_duration(obj)
@@ -374,7 +375,7 @@ classdef load_data
             if obj.excludeShortResponses
                 if obj.showPlotsAndText == 1
                     disp(['Excluding ' num2str(sum(obj.dataTable.Duration<obj.durationThr)) ...
-                          ' responses for short duration']);
+                        ' responses for short duration']);
                 end
                 obj.dataTable = obj.dataTable(~(obj.dataTable.Duration<obj.durationThr),:);
             end
@@ -427,13 +428,13 @@ classdef load_data
                 disp(['Age Threshold: ' num2str(obj.excludeAge)])
                 disp(['Excluding ' num2str(height(obj.dataTable)-length(idx)) ' responses'])
                 figure
-            histogram(obj.dataTable.Age);
-            xline(obj.excludeAge,'k--')
-            h = text(obj.excludeAge-3,50,'Exclusion Threshold','FontSize',10);
-            set(h,'Rotation',90);
-            xlabel('Age (in years)'); ylabel('Number of responders');
-            title('Age Histogram')
-            snapnow
+                histogram(obj.dataTable.Age);
+                xline(obj.excludeAge,'k--')
+                h = text(obj.excludeAge-3,50,'Exclusion Threshold','FontSize',10);
+                set(h,'Rotation',90);
+                xlabel('Age (in years)'); ylabel('Number of responders');
+                title('Age Histogram')
+                snapnow
             end
             obj.dataTable = obj.dataTable(idx,:);
         end
@@ -502,7 +503,7 @@ classdef load_data
                     ageMetricMin = subsampling.groupSD;
                 end
                 minMetricMin = subsampling.minMetric;
-
+                
             else
                 minMetricMin = 6; %random large value
             end
@@ -587,7 +588,7 @@ classdef load_data
                 save(obj.subgroupIdxsPath,'subsampling');
             end
         end
-        function obj = load_subgroups(obj)
+        function obj = load_balanced_subgroups(obj)
             load(obj.subgroupIdxsPath);
             obj.subgroupNames = subsampling.countryNames;
             obj.groupingCategory = subsampling.groupingCategory;

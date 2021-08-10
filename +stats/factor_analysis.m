@@ -3,7 +3,7 @@ classdef factor_analysis < load_data.load_data
 
     properties
         dataTableInd = [16:48]; % emotion terms (obj.dataTable)
-        rotateMethod = 'Varimax'
+        rotateMethod = 'Varimax';
         emo
         emoLabels
         showPlotsAndTextFA = 0;
@@ -42,7 +42,7 @@ classdef factor_analysis < load_data.load_data
                 obj = hierarchical_clust(obj);
                 %obj = vif(obj);
             end
-            if ~strcmpi(obj.filterMethod,'AllResponses')
+            if ~strcmpi(obj.filterMethod,'AllResponses') && obj.showPlotsAndTextFA == 1
                 obj = dendrogram_categories(obj);
                 %obj = cronbach_categories(obj);
             end
@@ -143,7 +143,7 @@ classdef factor_analysis < load_data.load_data
                 close
                 snapnow
                 [FAScoreMeans] = splitapply(@mean,obj.FAScores(:,i),groupings);
-                if obj.showPlotsFA==1
+                if obj.showPlotsAndTextFA==1
                     figure
                     bar(FAScoreMeans)
                     xticklabels(table2array(groupNames));
@@ -217,14 +217,10 @@ classdef factor_analysis < load_data.load_data
                 dCat{i} = cell2mat(arrayfun(@(x) x{:}(:,i), sqForm, 'UniformOutput', false));
                 alpha(i,1) = stats.factor_analysis.cronbach(dCat{i});
             end
-            if obj.showPlotsAndTextFA == 1
                 disp('*** CROSS-CULTURAL CONSISTENCY OF EMOTION TERMS ***')
                 disp('Running Cronbachs Alpha on pairwise distances vector of each emotion between LANGUAGES')
-            end
             t_alpha = array2table(alpha,'VariableNames',{'CronbachAlpha'},'RowNames',obj.emoLabels);
-            if obj.showPlotsAndTextFA == 1
                 disp(sortrows(t_alpha,1,'descend'));
-            end
         end
         function obj = removeEmotionTerms(obj)
             for i=1:length(obj.emoToRemove)
