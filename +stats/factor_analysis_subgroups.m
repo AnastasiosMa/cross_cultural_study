@@ -1,18 +1,24 @@
 classdef factor_analysis_subgroups
     %Compare factor analysis with subgroups and without
-    %example obj = stats.factor_analysis_subgroups('~/Desktop/ccstudy/responses_pilot/Music Listening Habits.csv')
-    
+    %example obj = stats.factor_analysis_subgroups()
     properties
         Res
         subRes
         nosubRes
     end
-    
+
     methods
-        function obj = factor_analysis_subgroups(dataPath)
-            obj.Res{1} = stats.factor_analysis(dataPath,'AllResponses');
-            obj.Res{2} = stats.factor_analysis(dataPath,'BalancedSubgroups');
-            
+        function obj = factor_analysis_subgroups(obj)
+            a = stats.factor_analysis();
+            a.filterMethod = 'AllResponses';
+            a = do_load_data(a);
+            obj.Res{1} = a.do_factor_analysis;
+
+            b = stats.factor_analysis();
+            b.filterMethod = 'BalancedSubgroups';
+            b = do_load_data(b);
+            obj.Res{2} = b.do_factor_analysis;
+
             obj = fa_compare(obj);
         end
         function obj = fa_compare(obj)
@@ -27,4 +33,3 @@ classdef factor_analysis_subgroups
         end
     end
 end
-

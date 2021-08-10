@@ -1,8 +1,9 @@
 classdef load_data
     %Load data
-    %example obj = load_data.load_data('responses_pilot/Music Listening Habits.csv','AllResponses')
+    %example obj = load_data.load_data();obj = do_load_data(obj);
     properties
-        dataPath
+        dataPath = 'responses_pilot/Music Listening Habits.csv';
+        filterMethod = 'AllResponses' % Accepted Inputs: 'AllResponses','BalancedSubgroups',
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable %table to be used in the analysis
         alldataTable %table with data from all responses
@@ -13,6 +14,9 @@ classdef load_data
         educationLabels = {'Elementary school','High school','Vocational training','Bachelor''s degree','Master''s degree','Doctoral degree','Other','Prefer not to say','NA'};
         employmentLabels = {'Employed full-time', 'Employed part-time / casual', 'Self-employed', 'Student', 'Homemaker / caregiver', 'Retired', 'Currently out of work', 'Other', 'Prefer not to say','NA'}
         economicSituationLabels = {'Below Average','Average','Above Average'};
+        TIPIscalesNames = {'Extraversion','Agreeableness','Conscientiousness','Emotional_Stability','Openness_Experiences'};
+        ICscalesNames = {'Horizontal_individualism','Vertical_individualism','Horizontal_collectivism','Vertical_collectivism'};
+        icVars
         durationThr = 4; %Duration Threshold to exclude responses (in minutes)
         excludeShortResponses = 1; %Exclude responses below duration threshold
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
@@ -32,17 +36,13 @@ classdef load_data
         exportSubgroups = 1;
         subgroupIdxsPath = 'matchGenderAge/subsampling.mat'; %mat file with subgroup indexes
         createExcel = 0; %Create excel file with preprocessed data;
-        showPlots = 0; %Display plots, tables, and text
+        showPlotsAndText = 0; %Display plots, tables, and text
     end
     methods
-        function obj = load_data(dataPath,filterMethod)
+        function obj = load_data(obj)
+        end
+        function obj = do_load_data(obj)
             warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-            if nargin == 0
-                dataPath = [];
-                filterMethod = [];
-            end
-            obj.dataPath = dataPath;
-            obj.filterMethod = filterMethod;
             obj = get_variable_names(obj);
             obj = correct_variables(obj);
             if obj.discardMissingData ==1
@@ -61,12 +61,11 @@ classdef load_data
             if  obj.excludeRepetativeResponses
                 obj = responderVariability(obj);
             end
-            %if ~strcmpi(obj.filterMethod,'AllResponses')
--           %     obj = create_groupTable(obj);
--           %end
             obj = exclude_age(obj);
-            obj = create_groupTable(obj);
-            if obj.showPlots == 1
+            if ~strcmpi(obj.filterMethod,'AllResponses')
+                obj = create_groupTable(obj);
+            end
+            if obj.showPlotsAndText == 1
                 obj = count_participants(obj);
                 obj = age_distribution(obj);
                 obj = gender_distribution(obj);
@@ -80,7 +79,7 @@ classdef load_data
             if exist(obj.subgroupIdxsPath)
                 %obj = load_subgroups(obj);
             end
-            if obj.showPlots==1 && strcmpi(obj.filterMethod,'BalancedSubgroups')
+            if obj.showPlotsAndText==1 && strcmpi(obj.filterMethod,'BalancedSubgroups')
                 obj = age_subgroups(obj);
                 obj = gender_subgroups(obj);
             end
@@ -165,7 +164,77 @@ classdef load_data
             % economic situation
             EconomicSituation = categorical(obj.dataTable.EconomicSituation,[1:3],obj.economicSituationLabels);
             obj.dataTable = addvars(obj.dataTable,EconomicSituation(:),'NewVariableNames','economicSituationLabels');
-            
+
+
+            % add TIPI scores
+            tipiVars = {'Extraverted_Enthusiastic',
+             'Critical_Quarrelsome',
+             'Dependable_Self_disciplined',
+             'Anxious_EasilyUpset',
+             'OpenToNewExperiences_Complex',
+             'Reserved_Quiet',
+             'Sympathetic_Warm',
+             'Disorganized_Careless',
+             'Calm_EmotionallyStable',
+             'Conventional_Uncreative'};
+            tipiVarsData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,tipiVars));
+            tipiCompleteLogical = any(~isnan(tipiVarsData{:,:}),2);
+            tipiVarsDataComplete = tipiVarsData(tipiCompleteLogical,:);
+            reverseScoredItemNums = 2:2:10;
+            tipiVarsDataCompleteRecoded = tipiVarsDataComplete;
+            recodeScheme = 7:-1:1;
+            reverseScoredItemNums = 2:2:10;
+            tipiVarsDataCompleteRecoded{:,reverseScoredItemNums} = recodeScheme(tipiVarsDataComplete{:,reverseScoredItemNums});
+            scalesItems = reshape(1:10,[],2);
+            for k = 1:numel(obj.TIPIscalesNames)
+                curVar = nan(size(tipiCompleteLogical));
+                scores = mean(tipiVarsDataCompleteRecoded{:,scalesItems(k,:)},2);
+                TIPI(:,k) = scores;
+                curVar(tipiCompleteLogical) = scores;
+                obj.dataTable = addvars(obj.dataTable,curVar,'NewVariableNames',obj.TIPIscalesNames{k});
+            end
+            [m I] =  max(TIPI,[],2,'includenan');
+            curVar = strings(size(tipiCompleteLogical));
+            curVar(tipiCompleteLogical) = obj.TIPIscalesNames(I);
+            obj.dataTable = addvars(obj.dataTable,categorical(curVar),'NewVariableNames','TIPICategory');
+
+            %obj.dataTable = removevars(obj.dataTable,tipiVars);
+
+            % add horizontal/vertical individualism collectivism scores (just based on computing
+            % means on the items that loaded most for each factor
+            % in Triandis and Gelfand, 1998)
+            obj.icVars = {'I_dRatherDependOnMyselfThanOthers'
+                      'IRelyOnMyselfMostOfTheTime_IRarelyRelyOnOthers'
+                      'IOftenDo_myOwnThing_'
+                      'MyPersonalIdentity_IndependentOfOthers_IsVeryImportantToMe'
+                      'ItIsImportantThatIDoMyJobBetterThanOthers'
+                      'WinningIsEverything'
+                      'CompetitionIsTheLawOfNature'
+                      'WhenAnotherPersonDoesBetterThanIDo_IGetTenseAndAroused'
+                      'IfAColleagueGetsAPrize_IWouldFeelProud'
+                      'TheWell_beingOfMyColleaguesIsImportantToMe'
+                      'ToMe_PleasureIsSpendingTimeWithOthers'
+                      'IFeelGoodWhenICooperateWithOthers'
+                      'ParentsAndChildrenMustStayTogetherAsMuchAsPossible'
+                      'ItIsMyDutyToTakeCareOfMyFamily_EvenWhenIHaveToSacrificeWhatIWan'
+                      'FamilyMembersShouldStickTogether_NoMatterWhatSacrificesAreRequi'
+                      'ItIsImportantToMeThatIRespectTheDecisionsMadeByMyGroups'};
+            icVarsData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,obj.icVars));
+            icCompleteLogical = any(~isnan(icVarsData{:,:}),2);
+            icVarsDataComplete = icVarsData(icCompleteLogical,:);
+            scalesItems = reshape(1:16,[],4);
+            for k = 1:numel(obj.ICscalesNames)
+                curVar = nan(size(icCompleteLogical));
+                scores = mean(icVarsDataComplete{:,scalesItems(:,k)},2);
+                IC(:,k) = scores;
+                curVar(icCompleteLogical) = scores;
+                obj.dataTable = addvars(obj.dataTable,curVar,'NewVariableNames',obj.ICscalesNames{k});
+            end
+            [m I] =  max(IC,[],2,'includenan');
+            curVar = strings(size(icCompleteLogical));
+            curVar(icCompleteLogical) = obj.ICscalesNames(I);
+            obj.dataTable = addvars(obj.dataTable,categorical(curVar),'NewVariableNames','IndColCategory');
+            %obj.dataTable = removevars(obj.dataTable,icVars);
         end
         function obj = count_participants(obj)
             N = height(obj.dataTable);
@@ -194,7 +263,7 @@ classdef load_data
         end
         function obj = discard_missing_data(obj)
             N = height(obj.dataTable);
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 disp('*** Discard Incomplete Responses ***')
                 disp(['---Total responses: ' num2str(N)]);
                 disp('Keeping only responses with complete MLH and Demographic parts')
@@ -203,7 +272,7 @@ classdef load_data
                 obj.dataTable{:,'Country_childhood'},'Uni',false));
             obj.dataTable = obj.dataTable(complete_responses,:);
             N = height(obj.dataTable);
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 disp(['---Complete responses: ' num2str(N)]);
                 disp('')
             end
@@ -290,22 +359,26 @@ classdef load_data
             end
         end
         function obj = survey_duration(obj)
+            if obj.showPlotsAndText == 1
+                disp('---Removing responses with low survey duration');
+                disp(['Removing responses under: ' num2str(obj.durationThr) ' minutes']);
+            end
             obj.dataTable.Duration = minutes(obj.dataTable{:,'EndDate'} - ...
                 obj.dataTable{:,'StartDate'});
             %exclude responses above 30 minutes
             dur = obj.dataTable.Duration(obj.dataTable.Duration<30);
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 disp('---Removing responses with low survey duration');
                 disp(['Removing responses under: ' num2str(obj.durationThr) ' minutes']);
             end
             if obj.excludeShortResponses
-                if obj.showPlots == 1
+                if obj.showPlotsAndText == 1
                     disp(['Excluding ' num2str(sum(obj.dataTable.Duration<obj.durationThr)) ...
-                        ' responses for short duration']);
+                          ' responses for short duration']);
                 end
                 obj.dataTable = obj.dataTable(~(obj.dataTable.Duration<obj.durationThr),:);
             end
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 figure,histogram(dur);
                 xline(obj.durationThr,'k--')
                 h = text(obj.durationThr+0.5,150,'Exclusion Threshold','FontSize',10);
@@ -320,6 +393,10 @@ classdef load_data
                 %HARDCODED LOCATION OF EMOTIONS
                 responderVariability(i) = std(table2array(obj.dataTable(i,16:48)));
             end
+            if obj.showPlotsAndText == 1
+                disp('---Removing responses based on Responder Variability')
+                disp('Threshold: 3 Median Absolute Deviations below median')
+            end
             %isoutlier(responderVariability)
             MAD_limit = 1.4826*median(abs(responderVariability-...
                 median(responderVariability)))*3; %Median Absolute deviation formula
@@ -327,10 +404,12 @@ classdef load_data
             %find responses with LOW variability
             outliers_idx = responderVariability<thresh;
             obj.dataTable = obj.dataTable(~outliers_idx,:);
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 disp('---Removing responses based on Responder Variability')
                 disp('Threshold: 3 Median Absolute Deviations below median')
                 disp(['Excluding ' num2str(sum(outliers_idx)) ' responses for low variability']);
+            end
+            if obj.showPlotsAndText == 1
                 figure,histogram(responderVariability)
                 xline(thresh,'k--')
                 h = text(thresh+0.03,100,'Exclusion Threshold','FontSize',10);
@@ -343,7 +422,7 @@ classdef load_data
         end
         function obj = exclude_age(obj)
             idx = find(obj.dataTable.Age>=obj.excludeAge);
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 disp('---Removing responses based on Age')
                 disp(['Age Threshold: ' num2str(obj.excludeAge)])
                 disp(['Excluding ' num2str(height(obj.dataTable)-length(idx)) ' responses'])
@@ -364,7 +443,7 @@ classdef load_data
             artistT = sortrows(artistT,1,'descend');
             topArtist = artistT(1:10,:);
             dur = duration(0,30,0);
-            if obj.showPlots ==1
+            if obj.showPlotsAndText ==1
                 figure, h=histogram(obj.dataTable.EndDate,'BinWidth',dur);
                 title('Histogram of responses in time')
                 snapnow
@@ -380,7 +459,9 @@ classdef load_data
             faultyIDs = table2array(readtable(obj.excludeResponsesPath));
             [c,idx] = setdiff(table2array(obj.dataTable(:,'RespondentID')),faultyIDs');
             obj.dataTable = obj.dataTable(idx,:);
-            if obj.showPlots==1
+            if obj.showPlotsAndText==1
+                disp('*** Outlier Detection ***')
+                disp('3 criteria: Survey duration, low variability, repeated entry(based on participant ID)')
                 disp('---Removing responses based on ID')
                 disp([num2str(length(faultyIDs)) ' responses removed from ID'])
             end
@@ -421,7 +502,7 @@ classdef load_data
                     ageMetricMin = subsampling.groupSD;
                 end
                 minMetricMin = subsampling.minMetric;
-                
+
             else
                 minMetricMin = 6; %random large value
             end
@@ -511,7 +592,7 @@ classdef load_data
             obj.subgroupNames = subsampling.countryNames;
             obj.groupingCategory = subsampling.groupingCategory;
             obj.subgroupIds = subsampling.subgroupIds;
-            if obj.showPlots == 1
+            if obj.showPlotsAndText == 1
                 disp(['*** AGE-GENDER Subsampling Results ***'])
                 disp(['Number of iterations: ' num2str(obj.repetitions)])
                 %disp(['Participants per country: ' num2str(length(obj.subgroupIds{1}))])

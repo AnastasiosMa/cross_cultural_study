@@ -1,18 +1,24 @@
-classdef mlh_emo_anovas < load_data.load_data
-    % exploring anovas based on general mlh behavior
-    % example obj = stats.mlh_emo_anovas('responses_pilot/Music Listening Habits.csv'); do_anovas(obj);
+classdef differences_in_reasons_betw_groups < load_data.load_data
+    % exploring kruskalwallis based on mlh behavior
+    % example obj = stats.differences_in_reasons_betw_groups('responses_pilot/Music Listening Habits.csv','AllResponses'); do_differences_in_reasons_betw_groups(obj);
     properties
-
+        ReasonType = 'GeneralBehavior'% 'GeneralBehavior','SelectedTrack'
+        Var = 'employmentLabels';%'employmentLabels','AgeCategory','EconomicSituation','Education','Employment','Gender','Musicianship'
     end
 
     methods
-        function obj = mlh_emo_anovas(dataPath)
+        function obj = differences_in_reasons_betw_groups(dataPath,filterMethod)
+            if nargin < 2
+                error('ErrorTests:convertTest',...
+              'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
+             end
             if nargin == 0
                 dataPath = [];
+                filterMethod = [];
             end
-            obj = obj@load_data.load_data(dataPath);
+            obj = obj@load_data.load_data(dataPath, filterMethod);
         end
-        function obj = do_anovas(obj)
+        function obj = do_differences_in_reasons_betw_groups(obj)
             reasonLabels = {'for background purposes'
                             'to bring up memories'
                             'to have fun'
@@ -25,35 +31,43 @@ classdef mlh_emo_anovas < load_data.load_data
                             'Sometimes'
                             'Quite often'
                             'Very often'};
-            Var = 'employmentLabels';
             N = 100;
-            %reducedTable = stats.mlh_emo_anovas.filterMostFrequentCategories(obj.dataTable,Var,N);
+            %reducedTable = stats.differences_in_reasons_betw_groups.filterMostFrequentCategories(obj.dataTable,Var,N);
             reducedTable = obj.dataTable;
-            selectedGroupingVarLevels = unique(reducedTable.(Var));
-            g = groupcounts(reducedTable,Var);
-            disp(g);
+            selectedGroupingVarLevels = unique(reducedTable.(obj.Var));
+            if matches(obj.ReasonType,'GeneralBehavior')
             tableFunctions = reducedTable(:,contains(reducedTable.Properties.VariableNames,'Music_'));
+            elseif  matches(obj.ReasonType,'SelectedTrack')
+            tableFunctions = reducedTable(:,contains(reducedTable.Properties.VariableNames,'Track_'));
+            end
+            badData = any(isnan(table2array(tableFunctions)),2);
+            tableFunctions(badData,:) = [];
+            reducedTable(badData,:)=[];
+            g = groupcounts(reducedTable,obj.Var);
+            disp(g);
             tableFunctionsNumeric = tableFunctions;
+
+
             for k = 1:size(tableFunctions,2)
                 cats = categorical(tableFunctions{:,k},[1:numel(likertPoints)],likertPoints,'Ordinal',true);
                 tableFunctions.(tableFunctions.Properties.VariableNames{k}) = cats;
             end
             for k = 1:size(tableFunctions,2)
                 disp(['***' upper(reasonLabels{k}) '***'])
-                [p tbl] = anova1(tableFunctionsNumeric{:,k},reducedTable.(Var));
+                [p tbl] = kruskalwallis(tableFunctionsNumeric{:,k},reducedTable.(obj.Var));
                 close
                 snapnow
                 reasonLabel = tableFunctions.Properties.VariableNames{k};
-                G = groupsummary(reducedTable,{Var,reasonLabel});
+                G = groupsummary(reducedTable,{obj.Var,reasonLabel});
                 nLikertPoints = numel(likertPoints);
                 for j = 1:numel(selectedGroupingVarLevels)
-                    if sum(matches(string(G.(Var)),string(selectedGroupingVarLevels(j)))) ~= nLikertPoints
-                        availablePoints = G.(reasonLabel)(matches(string(G.(Var)),string(selectedGroupingVarLevels(j))));
+                    if sum(matches(string(G.(obj.Var)),string(selectedGroupingVarLevels(j)))) ~= nLikertPoints
+                        availablePoints = G.(reasonLabel)(matches(string(G.(obj.Var)),string(selectedGroupingVarLevels(j))));
                         expectedPoints = 1:nLikertPoints;
                         C = setdiff(expectedPoints, availablePoints);
                         C = C(:);
                         T = table(repelem(selectedGroupingVarLevels(j),numel(C))',C,repelem(0,numel(C))','VariableNames',G.Properties.VariableNames);
-                        G = sortrows([G; T],{Var,reasonLabel});
+                        G = sortrows([G; T],{obj.Var,reasonLabel});
                         % here we want to put the rows back to how
                         % they were
                     end
