@@ -3,20 +3,21 @@ classdef factor_analysis < load_data.load_data
 
     properties
         dataTableInd = [16:48]; % emotion terms (obj.dataTable)
-        rotateMethod = 'Varimax'
+        rotateMethod = 'Varimax';
         emo
         emoLabels
         showPlotsAndTextFA = 0;
         distanceM = 'euclidean';
         removeLeastRatedTerms = 1;
-        removalPercentage = .2;
+        removalPercentage = .1;
         removedEmotions
         removeEmoTermsManually = 0; %select manually emotions to remove
-        emoToRemove  % = {'Spirituality','Longing','Amusement','Security','Belonging'};
-                     %emoToRemove = {'Tension','Eroticism'};
+        %emoToRemove  % = {'Spirituality','Longing','Amusement','Security','Belonging'};
+        emoToRemove% = {'Tension','Eroticism'};
         PCNum =4;%number of factors
         FAcoeff
-        FAscores
+        FAScores
+        factorNames
     end
     methods
         function obj = factor_analysis(obj)
@@ -41,9 +42,9 @@ classdef factor_analysis < load_data.load_data
                 obj = hierarchical_clust(obj);
                 %obj = vif(obj);
             end
-            if ~strcmpi(obj.filterMethod,'AllResponses')
+            if ~strcmpi(obj.filterMethod,'AllResponses') && obj.showPlotsAndTextFA == 1
                 obj = dendrogram_categories(obj);
-                obj = cronbach_categories(obj);
+                %obj = cronbach_categories(obj);
             end
             if obj.removeLeastRatedTerms == 1
                 obj = remove_least_rated_terms(obj);
@@ -52,13 +53,16 @@ classdef factor_analysis < load_data.load_data
                 obj = pca_emo(obj);
             end
             obj = fa(obj);
+            if ~strcmpi(obj.filterMethod,'AllResponses')
+                obj = anova_fa(obj);
+            end
         end
         function obj = plot_means(obj)
             if obj.showPlotsAndTextFA == 1
                 disp('*** MEANS AND STANDARD DEVIATIONS ***')
             end
             t_m = table(obj.emoLabels', mean(obj.emo)',std(obj.emo)',...
-                        'VariableNames',{'Emotion','Mean score','Standard deviation'});
+                'VariableNames',{'Emotion','Mean score','Standard deviation'});
             t_m = sortrows(t_m,2,'descend');
             figure
             errorbar(table2array(t_m(:,2)),table2array(t_m(:,3))/2,'-s','markersize',7,...
@@ -98,16 +102,56 @@ classdef factor_analysis < load_data.load_data
             end
         end
         function  obj = fa(obj)
-            [obj.FAcoeff, psi, ~, stats,obj.FAscores] = factoran(obj.emo,obj.PCNum,'Rotate',obj.rotateMethod);
+            [obj.FAcoeff, psi, ~, stats,obj.FAScores] = factoran(obj.emo,obj.PCNum,'Rotate',obj.rotateMethod);
             if obj.showPlotsAndTextFA == 1
                 disp(['*** FACTOR ANALYSIS (' obj.rotateMethod 'rotation)***'])
+            end
+            for i=1:obj.PCNum
+                t=sortrows(table(obj.FAcoeff(:,i),obj.emoLabels','VariableNames',...
+                    {'FALoadings','Emotions'}),1,'descend');
+                obj.factorNames{i} = table2array(t(1:2,2))';
+                obj.factorNames{i} = char(append(obj.factorNames{i}(1), '-',...
+                    obj.factorNames{i}(2)));
+            end
+            if obj.showPlotsAndTextFA==1
+               fName = array2table(obj.factorNames','VariableNames',{'Factor Names'});
+               disp(fName)
             end
             if obj.showPlotsAndTextFA==1
                 figure
                 heatmap(obj.FAcoeff)
                 ax = gca; ax.YDisplayLabels = num2cell(obj.emoLabels);
                 title('Factor Loadings')
+                snapnow 
+               % figure
+               % bar(mean(obj.FAScores))
+               % title('Factor Score Means')
+               % xlabel('Factors');ylabel('Mean factor score')
+               % xticklabels(obj.factorNames);
+               % xtickangle(45);
+               % snapnow
+            end
+        end
+        function obj = anova_fa(obj)
+            [groupings,groupNames] = findgroups(obj.groupTable(:,obj.groupingCategory));
+            %disp('*** ANOVA Factor Scores ***')
+            figure
+            for i = 1:obj.PCNum
+                fName = append('Factor ', num2str(i), ': ', obj.factorNames{i});
+                    disp(['ANOVA ' fName])
+                [p(i),tbl{i}] = anova1(obj.FAScores(:,i),obj.groupTable.Country_childhood,'on');
+                close
                 snapnow
+                [FAScoreMeans] = splitapply(@mean,obj.FAScores(:,i),groupings);
+                if obj.showPlotsAndTextFA==1
+                    figure
+                    bar(FAScoreMeans)
+                    xticklabels(table2array(groupNames));
+                    xtickangle(45);
+                    title(fName)
+                    xlabel('Groups'); ylabel('Factor Scores');
+                    snapnow
+                end
             end
         end
         function obj = hierarchical_clust(obj)
@@ -158,28 +202,25 @@ classdef factor_analysis < load_data.load_data
                 sqForm{i} = remove_diagonal(sqForm{i});
             end
             t_corr = corr(d,'rows','complete');
-            %figure, hold on
-            %imagesc(t_corr), colorbar
-            %ax = gca;
-            %ax.YTick = 1:length(obj.subgroupNames);
-            %ax.XTick = 1:length(obj.subgroupNames);
-            %ax.YTickLabel = obj.subgroupNames;
-            %ax.XTickLabel = obj.subgroupNames;
-            %hold off
-            %title('Correlations between languages')
-            %snapnow
+            figure, hold on
+            imagesc(t_corr), colorbar
+            ax = gca;
+            ax.YTick = 1:length(obj.subgroupNames);
+            ax.XTick = 1:length(obj.subgroupNames);
+            ax.YTickLabel = obj.subgroupNames;
+            ax.XTickLabel = obj.subgroupNames;
+            ax.XTickLabelRotation = 45;
+            hold off
+            title('Correlations between Countries')
+            snapnow
             for i=1:length(sqForm{1})
                 dCat{i} = cell2mat(arrayfun(@(x) x{:}(:,i), sqForm, 'UniformOutput', false));
                 alpha(i,1) = stats.factor_analysis.cronbach(dCat{i});
             end
-            if obj.showPlotsAndTextFA == 1
                 disp('*** CROSS-CULTURAL CONSISTENCY OF EMOTION TERMS ***')
                 disp('Running Cronbachs Alpha on pairwise distances vector of each emotion between LANGUAGES')
-            end
             t_alpha = array2table(alpha,'VariableNames',{'CronbachAlpha'},'RowNames',obj.emoLabels);
-            if obj.showPlotsAndTextFA == 1
                 disp(sortrows(t_alpha,1,'descend'));
-            end
         end
         function obj = removeEmotionTerms(obj)
             for i=1:length(obj.emoToRemove)
@@ -213,16 +254,16 @@ classdef factor_analysis < load_data.load_data
         end
         function obj = cronbach_categories(obj)
             remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]);
-            groupings = findgroups(obj.dataTable(:,obj.groupingCategory));
+            [groupings,groupnames] = findgroups(obj.dataTable(:,obj.groupingCategory));
             for i = 1:size(obj.emo,1)
                 disParticipant{i} = remove_diagonal(squareform(pdist(obj.emo(i,:)')));
             end
             for i=1:size(obj.emo,2)
                 disEmo = cell2mat(arrayfun(@(x) x{:}(:,i), disParticipant, 'UniformOutput', false));
-                alphasCat(i,:) = splitapply(@stats.factor_analysis.cronbach,disEmo',groupings);
-                alphasWhole(i,1) = stats.factor_analysis.cronbach(disEmo');
+                alphasCat(i,:) = splitapply(@cronbach,disEmo',groupings);
+                alphasWhole(i,1) = cronbach(disEmo');
             end
-            t_alpha = array2table([alphasWhole alphasCat],'VariableNames',[{'Global'}; obj.subgroupNames],'RowNames',obj.emoLabels);
+            t_alpha = array2table([alphasWhole alphasCat],'VariableNames',[{'Global'}; table2array(groupnames)],'RowNames',obj.emoLabels);
             if obj.showPlotsAndTextFA==1
                 disp(t_alpha);
             end
