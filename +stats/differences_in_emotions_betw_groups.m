@@ -23,7 +23,7 @@ classdef differences_in_emotions_betw_groups < load_data.load_data
             set(0,'DefaultFigureVisible','off')
             fa = stats.factor_analysis(obj.dataPath,obj.filterMethod);
             set(0,'DefaultFigureVisible','on')
-            emotionDims = fa.FAscores;
+            emotionDims = fa.FAScores;
             FactorNames = {'TendernessLove','TriumphBeauty','PainSadness','PleasureHappiness'};
 
             if matches(obj.filterMethod,'BalancedSubgroups')
@@ -65,7 +65,7 @@ classdef differences_in_emotions_betw_groups < load_data.load_data
             set(0,'DefaultFigureVisible','off')
             fa = stats.factor_analysis(obj.dataPath,obj.filterMethod);
             set(0,'DefaultFigureVisible','on')
-            emotionDims = fa.FAscores;
+            emotionDims = fa.FAScores;
             FactorNames = {'TendernessLove','TriumphBeauty','PainSadness','PleasureHappiness'};
             Age = reducedTable.Age;
 

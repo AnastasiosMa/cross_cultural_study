@@ -41,7 +41,7 @@ classdef ancova_examples < load_data.load_data
                 set(0,'DefaultFigureVisible','off')
                 fa = stats.factor_analysis(obj.dataPath,obj.filterMethod);
                 set(0,'DefaultFigureVisible','on')
-                fa.FAscores(any(isnan(tableFunctions{:,:}), 2), :) = [];
+                fa.FAScores(any(isnan(tableFunctions{:,:}), 2), :) = [];
                 Age = obj.dataTable.AgeCategory;
                 Age(any(isnan(tableFunctions{:,:}), 2), :) = [];
 
@@ -53,7 +53,7 @@ classdef ancova_examples < load_data.load_data
                         if matches(FactorNames{i},'TriumphBeauty')
                             if matches(reasonLabels{j},'to have fun')
                                 if matches(ReasonType,'General Behavior')
-                                    [h,atab,ctab,stat] = aoctool(fa.FAscores(:,i),Y(:,j),Age,.05,FactorNames{i},reasonLabels{j},'Age');
+                                    [h,atab,ctab,stat] = aoctool(fa.FAScores(:,i),Y(:,j),Age,.05,FactorNames{i},reasonLabels{j},'Age');
                                     multcompare(stat,0.05,'on','','s')
                                 end
                             end

@@ -40,8 +40,8 @@ classdef explore_tipi < load_data.load_data
         end
         function obj = TIPICategoryANOVA(obj)
             a = stats.factor_analysis(obj.dataPath,obj.filterMethod);
-            for k = 1:size(a.FAscores,2)
-                FAs{k} = a.FAscores(:,k);
+            for k = 1:size(a.FAScores,2)
+                FAs{k} = a.FAScores(:,k);
             end
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             obj.dataTable(:,16:48) = []; % REMOVE HARDCODED EMO LOCATIONS
@@ -83,8 +83,8 @@ classdef explore_tipi < load_data.load_data
         end
         function obj = do_explore_tipi(obj)
             % a = stats.factor_analysis(obj.dataPath,obj.filterMethod);
-            % for k = 1:size(a.FAscores,2)
-            %     FAs{k} = a.FAscores(:,k);
+            % for k = 1:size(a.FAScores,2)
+            %     FAs{k} = a.FAScores(:,k);
             % end
             % obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             tipiCompleteLogical = ~any(isnan(obj.dataTable{:,matches(obj.dataTable.Properties.VariableNames,obj.TIPIscalesNames)}),2);

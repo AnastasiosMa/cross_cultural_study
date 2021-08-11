@@ -11,8 +11,8 @@ classdef explore_data_correlations < load_data.load_data & stats.factor_analysis
         end
         function obj = do_explore_data_correlations(obj)
             a = do_factor_analysis(obj);
-            for k = 1:size(a.FAscores,2)
-                FAs{k} = a.FAscores(:,k);
+            for k = 1:size(a.FAScores,2)
+                FAs{k} = a.FAScores(:,k);
             end
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             %obj.dataTable(:,16:48) = []; % REMOVE HARDCODED EMO LOCATIONS

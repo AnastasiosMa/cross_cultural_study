@@ -14,8 +14,8 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
         end
         function obj = exploreICpca(obj)
             emo = do_factor_analysis(obj);
-            for k = 1:size(emo.FAscores,2)
-                FAs{k} = emo.FAscores(:,k);
+            for k = 1:size(emo.FAScores,2)
+                FAs{k} = emo.FAScores(:,k);
             end
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             obj.dataTableInd = find(matches(obj.dataTable.Properties.VariableNames, obj.icVars));
@@ -33,8 +33,8 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
         function obj = exploreICfactorAnalysis(obj)
         a = stats.factor_analysis(obj);
             emo = do_factor_analysis(obj);
-            for k = 1:size(emo.FAscores,2)
-                FAs{k} = emo.FAscores(:,k);
+            for k = 1:size(emo.FAScores,2)
+                FAs{k} = emo.FAScores(:,k);
             end
         obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             obj.dataTableInd = find(matches(obj.dataTable.Properties.VariableNames, obj.icVars));
@@ -178,14 +178,14 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
         function obj = plot2Dksdensity_2factorSolution(obj)
             addpath('~/Documents/MATLAB/dscatter')
             addpath('~/Documents/MATLAB/brewermap')
-        %dscatter(obj.FAscores(:,1),obj.FAscores(:,2)),xlabel('Collectivism'),ylabel('Individualism')
+        %dscatter(obj.FAScores(:,1),obj.FAScores(:,2)),xlabel('Collectivism'),ylabel('Individualism')
             countries = unique(obj.dataTable.(obj.countryType));
             countriesm = strrep(countries,'United Kingdom','UK');
             countriesm = strrep(countriesm,'United States','US');
             countriesm = cellfun(@(x) upper(x(1:2)),countriesm,'un',0);
             b = brewermap(numel(countries),'Set3');
-            M = max(obj.FAscores);
-            m = min(obj.FAscores);
+            M = max(obj.FAScores);
+            m = min(obj.FAScores);
             %xlim([m(1),M(1)]);ylim([m(2),M(2)]);
             figure
             xline(0)
@@ -193,7 +193,7 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
             hold on
             for k = 1:numel(countries)
                 logCountry = matches(obj.dataTable.(obj.countryType), countries(k));
-                dataCountry = obj.FAscores(logCountry,:);
+                dataCountry = obj.FAScores(logCountry,:);
                 %dataPain=obj.dataTable.PainSadness(logCountry,:);
                 %bubblechart(median(dataCountry(:,1)),median(dataCountry(:,2)),median(dataPain),b(k,:),'MarkerFaceAlpha',0.20);
                 %bubblelegend('PainSadness','Location','northeastoutside')
@@ -258,8 +258,8 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
         end
         function obj = indColCategoryANOVA(obj)
             a = stats.factor_analysis(obj.dataPath,obj.filterMethod);
-            for k = 1:size(a.FAscores,2)
-                FAs{k} = a.FAscores(:,k);
+            for k = 1:size(a.FAScores,2)
+                FAs{k} = a.FAScores(:,k);
             end
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             obj.dataTable(:,16:48) = []; % REMOVE HARDCODED EMO LOCATIONS
@@ -301,8 +301,8 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
         end
         function obj = do_explore_indiv_collect(obj)
             % a = stats.factor_analysis(obj.dataPath,obj.filterMethod);
-            % for k = 1:size(a.FAscores,2)
-            %     FAs{k} = a.FAscores(:,k);
+            % for k = 1:size(a.FAScores,2)
+            %     FAs{k} = a.FAScores(:,k);
             % end
             % obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             icCompleteLogical = ~any(isnan(obj.dataTable{:,matches(obj.dataTable.Properties.VariableNames,obj.ICscalesNames)}),2);

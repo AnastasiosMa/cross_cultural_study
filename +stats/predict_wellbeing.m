@@ -79,7 +79,7 @@ classdef predict_wellbeing < load_data.load_data
             fa = stats.factor_analysis(obj.dataPath,obj.filterMethod);
             set(0,'DefaultFigureVisible','on')
             FactorNames = {'TendernessLove','TriumphBeauty','PainSadness','PleasureHappiness','IsMusicBeneficialForYourWellbeing'};
-            mdl = fitlm(zscore(fa.FAscores),zscore(Y),'VarNames',FactorNames);
+            mdl = fitlm(zscore(fa.FAScores),zscore(Y),'VarNames',FactorNames);
             disp(mdl);
         end
     end
