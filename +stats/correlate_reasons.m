@@ -1,19 +1,47 @@
 classdef correlate_reasons < load_data.load_data
-%example: obj = stats.correlate_reasons('responses_pilot/Music Listening Habits.csv','AllResponses'); do_mean_reasons(obj);do_correlate_reasons(obj);
+%example: obj = stats.correlate_reasons();obj.filterMethod='BalancedSubgroups';obj=do_load_data(obj);spider_reasons_country(obj); do_mean_reasons(obj);do_correlate_reasons(obj);
 
     properties
+        countryType = 'Country_childhood';
     end
     methods
         function obj = correlate_reasons(dataPath,filterMethod)
-            if nargin < 2
-                error('ErrorTests:convertTest',...
-                      'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
-            end
-            if nargin == 0
-                dataPath = [];
-                filterMethod = [];
-            end
-            obj = obj@load_data.load_data(dataPath, filterMethod);
+            obj=do_load_data(obj);
+        end
+        function obj = spider_reasons_country(obj)
+                        addpath('~/Documents/MATLAB/spider_plot')
+                        reasonLabels = {'for background purposes'
+                            'to bring up memories'
+                            'to have fun'
+                            'to feel music´s emotions'
+                            'to change your mood'
+                            'to express yourself'
+                            'to feel connected to other people'};
+                        reasonTypes = {'General Behavior','Selected Track'};
+                        countries = unique(obj.dataTable.(obj.countryType));
+                        countriesm = strrep(countries,'United Kingdom','UK');
+                        countriesm = strrep(countriesm,'United States','US');
+                        countriesm = cellfun(@(x) upper(x(1:2)),countriesm,'un',0);
+                        % br = brewermap(12,'Set3');
+                        % b = distinguishable_colors(numel(countries)-12);
+                        % b = [br; b];
+                        b = distinguishable_colors(numel(countries))
+                        reasonTypesKey = {'Music_','Track_'};
+                        figure('units','normalized','outerposition',[0 0 1 1])
+                        for j = 1:numel(reasonTypesKey)
+                            for k = 1:numel(countries)
+                                logCountry = matches(obj.dataTable.(obj.countryType), countries(k));
+                                reasonData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,reasonTypesKey{j}));
+                                reasonDataCountry(j,k,:) = nanmean(reasonData{logCountry,:});
+                            end
+                            subplot(2,1,j)
+                            spider_plot(squeeze(reasonDataCountry(j,:,:)),'AxesLabels',reasonLabels,'Color',b)
+                            if j == 1
+                                l = legend(countriesm,'Location','EastOutside','Orientation','Vertical');
+                            end
+                        end
+                        l.Position(1) = 0;
+                        keyboard(2) = 0;
         end
         function obj = do_mean_reasons(obj)
             close all

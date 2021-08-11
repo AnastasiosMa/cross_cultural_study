@@ -1,29 +1,21 @@
-classdef explore_data_correlations < load_data.load_data
-%example: obj = stats.explore_data_correlations('responses_pilot/Music Listening Habits.csv','AllResponses');obj=do_explore_data_correlations(obj);correlate_features_and_plot(obj);steplm(obj)
+classdef explore_data_correlations < load_data.load_data & stats.factor_analysis
+%example: obj = stats.explore_data_correlations();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj=do_explore_data_correlations(obj);correlate_features_and_plot(obj);steplm(obj)
 
     properties
             FactorNames = {'TendernessLove','TriumphEnergy','PainSadness','PleasureHappiness'};
             data
     end
     methods
-        function obj = explore_data_correlations(dataPath,filterMethod)
-            if nargin < 2
-                error('ErrorTests:convertTest',...
-                      'Choose a filter method: \n  AllResponses \n  BalancedSubgroups');
-            end
-            if nargin == 0
-                dataPath = [];
-                filterMethod = [];
-            end
-            obj = obj@load_data.load_data(dataPath, filterMethod);
+        function obj = explore_data_correlations(obj)
+            obj=do_load_data(obj);
         end
         function obj = do_explore_data_correlations(obj)
-            a = stats.factor_analysis(obj.dataPath,obj.filterMethod);
+            a = do_factor_analysis(obj);
             for k = 1:size(a.FAscores,2)
                 FAs{k} = a.FAscores(:,k);
             end
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
-            obj.dataTable(:,16:48) = []; % REMOVE HARDCODED EMO LOCATIONS
+            %obj.dataTable(:,16:48) = []; % REMOVE HARDCODED EMO LOCATIONS
             % remove variables that are difficult to make ordinal
             obj.dataTable = removevars(obj.dataTable,{'RespondentID','Childhood','Adulthood','Residence','Identity','Duration','Employment','IndColCategory'});
             % remove people from 'Other' gender
@@ -34,6 +26,10 @@ classdef explore_data_correlations < load_data.load_data
             S = vartype('numeric');
             numericT = dataTableTIPIcomplete(:,S);
             obj.data = numericT(~any(isnan(numericT{:,:}),2),:);
+            icVarInd = find(matches(obj.data.Properties.VariableNames, obj.icVars));
+            [coeff, score, ~, ~, explained] = pca(obj.data{:,icVarInd},'NumComponents',3);
+            PCnames = {'IndCol','HorzVert'};
+            obj.data = addvars(obj.data,score(:,2),score(:,3),'NewVariableNames',PCnames);
         end
         function obj = steplm(obj)
             DV = [obj.FactorNames obj.dataTable.Properties.VariableNames(contains(obj.dataTable.Properties.VariableNames,{'Music_','Track_'}))];
@@ -54,6 +50,10 @@ classdef explore_data_correlations < load_data.load_data
             end
         end
         function obj = correlate_features_and_plot(obj)
+        %obj.data = obj.data(obj.data.GenderCode == 1,:)% select a gender
+
+            obj.data(:,find(matches(obj.data.Properties.VariableNames, 'MusicWellBeing'))+1:find(matches(obj.data.Properties.VariableNames, 'IndCol'))-1)=[];
+
             c = corr(obj.data{:,:});
             c(triu(true(size(c)),1)) = NaN;
             figure('units','normalized','outerposition',[0 0 1 1])
