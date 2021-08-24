@@ -10,6 +10,7 @@ classdef correlate_reasons < load_data.load_data
         end
         function obj = spider_reasons_country(obj)
                         addpath('~/Documents/MATLAB/spider_plot')
+                        addpath('~/Documents/MATLAB/distinguishable_colors')
                         reasonLabels = {'for background purposes'
                             'to bring up memories'
                             'to have fun'
@@ -25,7 +26,7 @@ classdef correlate_reasons < load_data.load_data
                         % br = brewermap(12,'Set3');
                         % b = distinguishable_colors(numel(countries)-12);
                         % b = [br; b];
-                        b = distinguishable_colors(numel(countries))
+                        b = distinguishable_colors(numel(countries));
                         reasonTypesKey = {'Music_','Track_'};
                         figure('units','normalized','outerposition',[0 0 1 1])
                         for j = 1:numel(reasonTypesKey)
