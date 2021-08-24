@@ -53,9 +53,11 @@ classdef factor_analysis < load_data.load_data
                 obj = pca_emo(obj);
             end
             obj = fa(obj);
-            if ~strcmpi(obj.filterMethod,'AllResponses')
-                obj = anova_fa(obj);
-            end
+            % if ~strcmpi(obj.filterMethod,'AllResponses')
+            %     obj = anova_fa(obj);
+            % end
+            % I commented this because I get 'X and GROUP must have the
+            % same length' error when running this class with IC items
         end
         function obj = plot_means(obj)
             if obj.showPlotsAndTextFA == 1
