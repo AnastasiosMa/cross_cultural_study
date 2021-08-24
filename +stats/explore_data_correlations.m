@@ -52,7 +52,7 @@ classdef explore_data_correlations < load_data.load_data & stats.factor_analysis
         function obj = correlate_features_and_plot(obj)
         %obj.data = obj.data(obj.data.GenderCode == 1,:)% select a gender
 
-            obj.data(:,find(matches(obj.data.Properties.VariableNames, 'MusicWellBeing'))+1:find(matches(obj.data.Properties.VariableNames, 'IndCol'))-1)=[];
+        %obj.data(:,find(matches(obj.data.Properties.VariableNames, 'MusicWellBeing'))+1:find(matches(obj.data.Properties.VariableNames, 'IndCol'))-1)=[];
 
             c = corr(obj.data{:,:});
             c(triu(true(size(c)),1)) = NaN;
