@@ -2,8 +2,12 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
 %example: obj = stats.explore_indiv_collect();do_explore_indiv_collect(obj);exploreIndColCategory(obj);indColCategoryANOVA(obj);exploreICfactorAnalysis(obj);
 %obj = stats.explore_indiv_collect();obj.filterMethod='BalancedSubgroups';obj=do_load_data(obj);obj=exploreICfactorAnalysis(obj);plot2Dksdensity_2factorSolution(obj)
 % obj = stats.explore_indiv_collect();obj.filterMethod='BalancedSubgroups';obj=do_load_data(obj);obj = exploreICpca(obj);plot2Dksdensity_2PCs(obj)
+%obj = stats.explore_indiv_collect();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj = exploreICmds(obj)
 %obj = stats.explore_indiv_collect();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj = exploreICpca(obj);spider_ICcat_reasons(obj)
 %obj = stats.explore_indiv_collect();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj = exploreICpca(obj);spider_ICcat_emoFunctions(obj)
+%obj = stats.explore_indiv_collect();obj.filterMethod='BalancedSubgroups';obj=do_load_data(obj);obj=exploreICfactorAnalysis(obj);correlate4FacWithSum(obj)
+%obj = stats.explore_indiv_collect();obj.filterMethod='BalancedSubgroups';obj=do_load_data(obj);obj=indColAgeDensity(obj);
+%obj = stats.explore_indiv_collect();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj = exploreICpca(obj);obj=indColPCAAgeDensity(obj);
     properties
         FactorNames = {'TendernessLove','TriumphEnergy','PainSadness','PleasureHappiness'};
             countryType = 'Country_childhood';
@@ -11,6 +15,49 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
     methods
         function obj = explore_indiv_collect(obj)
             obj=do_load_data(obj);
+        end
+        function obj = correlate4FacWithSum(obj)
+        % correlate four factor solution with summing the question
+        % items corresponding to each factor
+            imagesc(corr(obj.dataTable{:,matches(obj.dataTable.Properties.VariableNames,obj.ICscalesNames)},obj.FAScores(:,[2 1 3 4])))
+            xticks(1:4)
+            yticks(1:4)
+            colorbar
+            xticklabels(wrev(strrep(obj.ICscalesNames,'_',' ')))
+            yticklabels(strrep(obj.ICscalesNames,'_',' '))
+            xlabel('4 factor solution')
+            ylabel('Triandis')
+        end
+        function obj = exploreICmds(obj)
+            obj.dataTableInd = find(matches(obj.dataTable.Properties.VariableNames, obj.icVars));
+            obj.dataTable(any(isnan(obj.dataTable{:,obj.dataTableInd}),2),:) = [];
+            obj.dataTable.Properties.VariableNames(obj.dataTableInd) = strrep(obj.dataTable.Properties.VariableNames(obj.dataTableInd),'_',' ');
+            icZ = zscore(obj.dataTable{:,obj.dataTableInd});
+            metric = 'euclidean';
+            method = 'mdscale';
+            mdScalingMethod = str2func(['@(x,y) ' method '(x,y)']);
+
+            p = pdist(icZ,metric);
+            g = get(groot,'defaultfigureposition');
+            g(3) = g(3)*2;
+            figure('Position',g)
+            tiledlayout(1,3)
+            for k = 2:4
+                Y = mdScalingMethod(p,k);
+                nexttile
+                barh((corr(Y,obj.dataTable{:,obj.dataTableInd})'))
+                yticks(1:numel(obj.dataTable.Properties.VariableNames(obj.dataTableInd)))
+                if k == 2
+                    yticklabels((obj.dataTable.Properties.VariableNames(obj.dataTableInd)))
+                else
+                    yticklabels('')
+                end
+                title([num2str(k) ' dimensions'])
+                set(gca, 'YDir','Reverse')
+            end
+            legend('Dim1','Dim2','Dim3','Dim4')
+            sgtitle([ method ' - ' metric ]);
+            %figure,scatter(Y(:,1),Y(:,2));
         end
         function obj = exploreICpca(obj)
             emo = do_factor_analysis(obj);
@@ -31,7 +78,7 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
             obj.dataTable = addvars(obj.dataTable,score(:,2),score(:,3),'NewVariableNames',PCnames);
         end
         function obj = exploreICfactorAnalysis(obj)
-        a = stats.factor_analysis(obj);
+        %a = stats.factor_analysis(obj);
             emo = do_factor_analysis(obj);
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
@@ -43,13 +90,14 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
             obj.showPlotsAndTextFA = 0;
             obj.removeLeastRatedTerms = 0;
             obj.rotateMethod = 'varimax';
-            obj.PCNum =2;%number of factors
+            obj.PCNum =4;%number of factors
             obj = do_factor_analysis(obj); % this should be done on the
                                   % original variables (which we
                                   % removed at some point)
         end
         function obj = spider_ICcat_reasons(obj)
             addpath('~/Documents/MATLAB/spider_plot')
+            addpath('~/Documents/MATLAB/brewermap')
             reasonLabels = {'for background purposes'
                             'to bring up memories'
                             'to have fun'
@@ -215,6 +263,40 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
                 xlabel('Collectivism')
                 ylabel('Individualism')
         end
+        function obj = indColAgeDensity(obj)
+            for k = 1:numel(obj.ICscalesNames)
+            [f(:,k),xi(:,k)] = ksdensity(obj.dataTable.Age,'Weights',obj.dataTable.(obj.ICscalesNames{k}));
+            end
+            area(xi,f)
+            %area(xi,f./sum(f,2))
+            legend(strrep(obj.ICscalesNames,'_',' '))
+            hold on
+            stem(obj.dataTable.Age,zeros(size(obj.dataTable.Age))+.001,'k')
+
+        end
+        function obj = indColPCAAgeDensity(obj)
+            factorNames = {'IndCol','HorzVert'};
+            c = brewermap(numel(factorNames),'Set2');
+            icData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,factorNames));
+            figure
+            %icData{:,:} = rescale(icData{:,:}',-1,1)';% do not rescale factors!
+            for k = 1:numel(factorNames)
+                [f(:,k),xi(:,k)] = ksdensity(obj.dataTable.Age,'Weights',icData{:,k});
+            end
+            plot(xi,f,'LineWidth',2)
+            for k = 1:numel(factorNames)
+                p(k).Color = c(k,:);
+            end
+            axis tight
+            l = legend(strrep(factorNames,'_',' '),'Location','NorthOutside','AutoUpdate','off');
+            %area(xi,f./sum(f,2))
+            hold on
+            stem(obj.dataTable.Age,zeros(size(obj.dataTable.Age))+.001,'k')
+            xlim([17 87])
+            ylabel({'<--Collectivism - Individualism-->'; '<--Vertical - Horizontal-->'});
+            title('Kernel density for age, weighted by IC/HV factors (PCs 2 and 3)')
+            xlabel('Age')
+        end
         function obj = exploreIndColCategory(obj)
             icCompleteLogical = ~any(isundefined(obj.dataTable.IndColCategory),2);
             dataTableICcomplete = obj.dataTable(icCompleteLogical,:);
@@ -257,7 +339,8 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
             ax.FontSize = 16;
         end
         function obj = indColCategoryANOVA(obj)
-            a = stats.factor_analysis(obj.dataPath,obj.filterMethod);
+            addpath('~/Documents/MATLAB/violin')
+            a = do_factor_analysis(obj);
             for k = 1:size(a.FAScores,2)
                 FAs{k} = a.FAScores(:,k);
             end
