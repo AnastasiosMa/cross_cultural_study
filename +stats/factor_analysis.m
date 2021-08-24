@@ -124,7 +124,7 @@ classdef factor_analysis < load_data.load_data
                 heatmap(obj.FAcoeff)
                 ax = gca; ax.YDisplayLabels = num2cell(obj.emoLabels);
                 title('Factor Loadings')
-                snapnow 
+                snapnow
                % figure
                % bar(mean(obj.FAScores))
                % title('Factor Score Means')
