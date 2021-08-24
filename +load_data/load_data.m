@@ -224,7 +224,7 @@ classdef load_data
             scalesItems = reshape(1:16,[],4);
             for k = 1:numel(obj.ICscalesNames)
                 curVar = nan(size(icCompleteLogical));
-                scores = mean(icVarsDataComplete{:,scalesItems(:,k)},2);
+                scores = sum(icVarsDataComplete{:,scalesItems(:,k)},2);
                 IC(:,k) = scores;
                 curVar(icCompleteLogical) = scores;
                 obj.dataTable = addvars(obj.dataTable,curVar,'NewVariableNames',obj.ICscalesNames{k});
