@@ -13,6 +13,9 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                         'to express yourself'
                         'to feel connected to other people'};
         reasonTypes = {'General Behavior','Selected Track'};
+        scatterPlotData
+        byGender = 'Yes';
+        bootCImethod = 'standard';% 'standard' or 'quantile'
     end
     methods
         function obj = explore_age(obj)
@@ -199,25 +202,28 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             S = size(emoData,2);
             su = stats.explore_age.numSubplots(S);
             tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
+            tl.TileSpacing = 'Compact';
+            tl.Padding = 'None';
             for k = 1:size(emoData,2)
                 ax{k} = nexttile;
                 if strcmpi(byGender,'No')
-                        G = groupsummary(obj.dataTable,"AgeCategory","Mean",emoLabels{k});
-                        %Gsd = groupsummary(obj.dataTable,"AgeCategory","std",emoLabels{k});
-                        meanData = G.(['mean_' emoLabels{k}]);
-                        b = bar(G.(['mean_' emoLabels{k}]));
-                        c = categories(obj.dataTable.AgeCategory);
-                        for j = 1:numel(c)
-                            data = obj.dataTable.(emoLabels{k})(matches(string(obj.dataTable.AgeCategory),c{j}));
-                            ci(:,j) = bootci(10000,@mean,data);
-                        end
-                        hold on
-                        e = errorbar(1:numel(meanData),meanData,ci(1,:),ci(2,:));
-                        e.LineStyle = 'none';
-                        e.LineWidth = 2;
-                        str = join([string(groupsummary(obj.dataTable,"AgeCategory").AgeCategory) + " (N=" groupsummary(obj.dataTable,"AgeCategory").GroupCount + ")"],'');
-                        xticklabels(str);
-                        ylabel(emoLabels{k});
+                    G = groupsummary(obj.dataTable,"AgeCategory","Mean",emoLabels{k});
+                    %Gsd = groupsummary(obj.dataTable,"AgeCategory","std",emoLabels{k});
+                    meanData = G.(['mean_' emoLabels{k}]);
+                    b = bar(G.(['mean_' emoLabels{k}]));
+                    c = categories(obj.dataTable.AgeCategory);
+                    for j = 1:numel(c)
+                        data = obj.dataTable.(emoLabels{k})(matches(string(obj.dataTable.AgeCategory),c{j}));
+                        ci(:,j) = bootci(10000,@mean,data);
+                    end
+                    hold on
+                    e = errorbar(1:numel(meanData),meanData,ci(1,:),ci(2,:));
+                    e.LineStyle = 'none';
+                    e.LineWidth = 2;
+                    str = join([string(groupsummary(obj.dataTable,"AgeCategory").AgeCategory) + " (N=" groupsummary(obj.dataTable,"AgeCategory").GroupCount + ")"],'');
+                    xticklabels(str);
+                    [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
+                    title("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')))
                 else
                     dataMF = obj.dataTable;
                     dataMF(matches(dataMF.Gender,'Other'),:) = [];
@@ -245,8 +251,659 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     str = join([string(G.AgeCategory) + " (N=" G.GroupCount + ")"],'');
                     xticks(reshape(cell2mat(x'),[],1))
                     xticklabels(str)
+                    [~,T] = anovan(obj.dataTable.(emoLabels{k}),{findgroups(obj.dataTable.AgeCategory),findgroups(obj.dataTable.Gender)},'Display','off','model','interaction');
+                    ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                    genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                    ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
+                    title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
+                    %title(join(['Age ' ageAN '; Gender ' genderAN],''))
                 end
                 ylabel(emoLabels{k})
+                grid on
+                %xlabel('Age group')
+                curMinCI = min(meanData-ci(1,:)');
+                curMaxCI = max(meanData+ci(1,:)');
+                if k > 1
+                   minCI = min(minCI,curMinCI);
+                   maxCI = max(maxCI,curMaxCI);
+                else
+                    [minCI, maxCI] = deal(curMinCI,curMaxCI);
+                end
+            end
+            for k = 1:numel(ax)
+                ax{k}.YLim = [minCI,maxCI];
+                extra = diff(ax{k}.YLim) * 10/100;
+                ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
+            end
+
+            if strcmpi(byGender,'Yes')
+                lgd = legend;
+                lgd.String = unique(dataMF.Gender);
+                lgd.Layout.Tile = 'north';
+                lgd.Orientation = 'horizontal';
+            end
+        end
+        function obj = emoFactorsBarplots(obj)
+            byGender = 'Yes';
+            addpath('~/Documents/MATLAB/distinguishable_colors')
+            emoLabels = obj.FactorNames;
+            emo = do_factor_analysis(obj);
+            for k = 1:size(emo.FAScores,2)
+                FAs{k} = emo.FAScores(:,k);
+            end
+             obj.dataTable.AgeCategory = renamecats(obj.dataTable.AgeCategory,{'Under 20','Over 60'},{'<20','60+'});
+            obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
+            emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
+            S = size(emoData,2);
+            fh = figure();
+            fh.WindowState = 'maximized';
+            S = size(emoData,2);
+            su = stats.explore_age.numSubplots(S);
+            tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
+            tl.TileSpacing = 'Compact';
+            tl.Padding = 'None';
+            for k = 1:size(emoData,2)
+                ax{k} = nexttile;
+                if strcmpi(byGender,'No')
+                    G = groupsummary(obj.dataTable,"AgeCategory","Mean",emoLabels{k});
+                    %Gsd = groupsummary(obj.dataTable,"AgeCategory","std",emoLabels{k});
+                    meanData = G.(['mean_' emoLabels{k}]);
+                    b = bar(G.(['mean_' emoLabels{k}]));
+                    c = categories(obj.dataTable.AgeCategory);
+                    for j = 1:numel(c)
+                        data = obj.dataTable.(emoLabels{k})(matches(string(obj.dataTable.AgeCategory),c{j}));
+                        ci(:,j) = bootci(10000,@mean,data);
+                    end
+                    hold on
+                    e = errorbar(1:numel(meanData),meanData,ci(1,:),ci(2,:));
+                    e.LineStyle = 'none';
+                    e.LineWidth = 2;
+                    str = join([string(groupsummary(obj.dataTable,"AgeCategory").AgeCategory) + " (N=" groupsummary(obj.dataTable,"AgeCategory").GroupCount + ")"],'');
+                    xticklabels(str);
+                    [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
+                    title("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')))
+                else
+                    dataMF = obj.dataTable;
+                    dataMF(matches(dataMF.Gender,'Other'),:) = [];
+                    G = groupsummary(dataMF,{'AgeCategory','Gender'},"Mean",emoLabels{k});
+                    meanData = G.(['mean_' emoLabels{k}]);
+                    dataBar = reshape(meanData,2,[])';
+                    b = bar(dataBar);
+                    [ngroups, nbars] = size(dataBar);
+                    groupwidth = min(0.8, nbars/(nbars + 1.5));
+                    b(1).FaceColor = [0.8500 0.3250 0.0980];
+                    b(2).FaceColor = [0 0.4470 0.7410];
+                    [GR,ID1,ID2] = findgroups(dataMF.AgeCategory,dataMF.Gender);
+                    for j = 1:numel(unique(GR))
+                        data = dataMF.(emoLabels{k})(GR == j);
+                        ci(:,j) = bootci(10000,@mean,data);
+                    end
+                    hold on
+                    lo = reshape(ci(1,:),2,[])';
+                    up = reshape(ci(2,:),2,[])';
+                    for i = 1:nbars
+                        % Calculate center of each bar
+                        x{i} = (1:ngroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*nbars);
+                        e = errorbar(x{i}, dataBar(:,i), lo(:,i),up(:,i), 'k', 'linestyle', 'none','LineWidth', 2);
+                    end
+                    str = join([string(G.AgeCategory) + " (N=" G.GroupCount + ")"],'');
+                    xticks(reshape(cell2mat(x'),[],1))
+                    xticklabels(str)
+                    [~,T] = anovan(obj.dataTable.(emoLabels{k}),{findgroups(obj.dataTable.AgeCategory),findgroups(obj.dataTable.Gender)},'Display','off','model','interaction');
+                    ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                    genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                    ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
+                    title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
+                    %title(join(['Age ' ageAN '; Gender ' genderAN],''))
+                end
+                ylabel(emoLabels{k})
+                grid on
+                %xlabel('Age group')
+                curMinCI = min(meanData-ci(1,:)');
+                curMaxCI = max(meanData+ci(1,:)');
+                if k > 1
+                   minCI = min(minCI,curMinCI);
+                   maxCI = max(maxCI,curMaxCI);
+                else
+                    [minCI, maxCI] = deal(curMinCI,curMaxCI);
+                end
+            end
+            for k = 1:numel(ax)
+                %ax{k}.YLim = [minCI,maxCI];
+                %extra = diff(ax{k}.YLim) * 10/100;
+                %ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
+            end
+
+            if strcmpi(byGender,'Yes')
+                lgd = legend;
+                lgd.String = unique(dataMF.Gender);
+                lgd.Layout.Tile = 'north';
+                lgd.Orientation = 'horizontal';
+            end
+        end
+        function obj = emoVarsDensity(obj)
+            byGender = obj.byGender;
+            bootCImethod = obj.bootCImethod;
+            sigma = 5;
+            iter = 100;
+            warning('check number of iterations')
+            addpath('~/Documents/MATLAB/distinguishable_colors')
+            emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);
+            fh = figure();
+            fh.WindowState = 'maximized';
+            emoData = obj.dataTable(:,obj.dataTableInd);
+            S = size(emoData,2);
+            su = stats.explore_age.numSubplots(S);
+            tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
+            tl.TileSpacing = 'Compact';
+            tl.Padding = 'None';
+            for k = 1:size(emoData,2)
+                ax{k} = nexttile;
+                if strcmpi(byGender,'No')
+                    ageRange = min(obj.dataTable.Age):max(obj.dataTable.Age);
+                    [B,BG] = groupsummary(emoData{:,k},obj.dataTable.Age,@mean);
+                    m = nan(1,max(BG));
+                    m(BG) = B;
+                    % Kernel regression with constant bandwidth
+                    z1=sum(emoData{:,k}.*normpdf(ageRange-obj.dataTable.Age,0,sigma));
+                    z2=sum(normpdf(ageRange-obj.dataTable.Age,0,sigma));
+                    z=z1./z2;
+                    if strcmpi(bootCImethod,'standard')
+                    CI = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
+                        l = z-CI;
+                        u = z+CI;
+                        l = l(:);
+                        u = u(:);
+                    else
+                        [~,l,u] = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
+                    end
+
+
+                    c = brewermap(1,'Set2');
+                    set(fh,'defaultLegendAutoUpdate','off');
+                    for ii = 1:size(l,2)
+                        fill([ageRange fliplr(ageRange)],[l(:,ii)' fliplr(u(:,ii)')],c(ii,:),'LineStyle','none','FaceAlpha',.3);
+                        hold on
+                    end
+                    plot(ageRange,z,'-k','LineWidth',2)
+                    reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
+                    beta(k) = reg(2);
+                    meanKerReg(k)= mean(z);
+                    percXlim = prctile(obj.dataTable.Age,[5 95]);
+                    smallAgeRange = ageRange(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                    smallZ = z(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                    smallL = l(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                    smallU = u(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                    regsmallAgeRange = regress(smallZ',[ones(size(smallAgeRange,2),1) smallAgeRange']);
+                    betasmallAgeRange(k) = regsmallAgeRange(2);
+
+                    reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
+
+                    axis tight
+                    xlabel('Age')
+                    [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
+                    title("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')))
+                else
+                    dataMF = obj.dataTable;
+                    dataMF(matches(dataMF.Gender,'Other'),:) = [];
+                    genderLabels = unique(dataMF.Gender);
+                    c = brewermap(numel(genderLabels)+1,'Set2');
+                    for gg = 1:numel(genderLabels)
+                        data = dataMF(matches(dataMF.Gender, genderLabels{gg}),:);
+                        emoDataCurGend = data(:,obj.dataTableInd);
+                        ageRange = min(data.Age):max(data.Age);
+                        [B,BG] = groupsummary(emoDataCurGend{:,k},data.Age,@mean);
+                        m = nan(1,max(BG));
+                        m(BG) = B;
+                        % Kernel regression with constant bandwidth
+                        z1=sum(emoDataCurGend{:,k}.*normpdf(ageRange-data.Age,0,sigma));
+                        z2=sum(normpdf(ageRange-data.Age,0,sigma));
+                        z=z1./z2;
+                        if strcmpi(bootCImethod,'standard')
+                        CI = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend{:,k},95,iter,sigma,bootCImethod);
+                        l = z-CI;
+                        u = z+CI;
+                        l = l(:);
+                        u = u(:);
+                        else
+                        [~,l,u] = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend{:,k},95,iter,sigma,bootCImethod);
+                        end
+                        set(fh,'defaultLegendAutoUpdate','off');
+                        for ii = 1:size(l,2)
+                            fill([ageRange fliplr(ageRange)],[l(:,ii)' fliplr(u(:,ii)')],c(gg+1,:),'LineStyle','none','FaceAlpha',.3);
+                            hold on
+                        end
+                        p = plot(ageRange,z,'-k','LineWidth',2);
+                        p.Annotation.LegendInformation.IconDisplayStyle = 'off';
+
+                        reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
+                        percXlim = prctile(data.Age,[5 95]);
+                        smallAgeRange = ageRange(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                        smallZ = z(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                        smallL{gg} = l(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                        smallU{gg} = u(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                        regsmallAgeRange = regress(smallZ',[ones(size(smallAgeRange,2),1) smallAgeRange']);
+                        betasmallAgeRange(k) = regsmallAgeRange(2);
+                        reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
+                        axis tight
+                        if gg == 1
+                            xlabel('Age')
+                            [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
+                            [~,T] = anovan(obj.dataTable.(emoLabels{k}),{findgroups(obj.dataTable.AgeCategory),findgroups(obj.dataTable.Gender)},'Display','off','model','interaction');
+                            ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                            genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                            ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
+                            title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
+                            %title(join(['Age ' ageAN '; Gender ' genderAN],''))
+                        end
+                    end
+                end
+                    ylabel(emoLabels{k})
+                    grid on
+                    %xlabel('Age group')
+                if strcmpi(byGender,'Yes')
+                curMinCI = min(cellfun(@min,smallL));
+                curMaxCI = max(cellfun(@max,smallU));
+                else
+                curMinCI = min(smallL);
+                curMaxCI = max(smallU);
+                end
+                    if k > 1
+                        minCI = min(minCI,curMinCI);
+                        maxCI = max(maxCI,curMaxCI);
+                    else
+                        [minCI, maxCI] = deal(curMinCI,curMaxCI);
+                    end
+            end
+            for k = 1:numel(ax)
+                ax{k}.YLim = [minCI,maxCI];
+                ax{k}.XLim = percXlim;
+                %extra = diff(ax{k}.YLim) * 1/100;
+                %ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
+            end
+
+            if strcmpi(byGender,'Yes')
+                lgd = legend;
+                lgd.String = unique(dataMF.Gender);
+                lgd.Layout.Tile = 'north';
+                lgd.Orientation = 'horizontal';
+            else
+                obj.scatterPlotData = [beta;meanKerReg];
+            end
+            [S I] = sort(betasmallAgeRange,'descend');
+            for k = 1:numel(ax)
+                ax{I(k)}.Layout.Tile = k;
+            end
+        end
+        function obj = emoFactorsDensity(obj)
+            byGender = obj.byGender;
+            bootCImethod = obj.bootCImethod;
+            sigma = 5;
+            iter = 100;
+            warning('check number of iterations')
+            addpath('~/Documents/MATLAB/distinguishable_colors')
+            emoLabels = obj.FactorNames;
+            emo = do_factor_analysis(obj);
+            for k = 1:size(emo.FAScores,2)
+                FAs{k} = emo.FAScores(:,k);
+            end
+            obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
+            fh = figure();
+            %fh.WindowState = 'maximized';
+            emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
+            S = size(emoData,2);
+            su = stats.explore_age.numSubplots(S);
+            tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
+            tl.TileSpacing = 'Compact';
+            tl.Padding = 'None';
+            for k = 1:size(emoData,2)
+                ax{k} = nexttile;
+                if strcmpi(byGender,'No')
+                    ageRange = min(obj.dataTable.Age):max(obj.dataTable.Age);
+                    [B,BG] = groupsummary(emoData{:,k},obj.dataTable.Age,@mean);
+                    m = nan(1,max(BG));
+                    m(BG) = B;
+                    % Kernel regression with constant bandwidth
+                    z1=sum(emoData{:,k}.*normpdf(ageRange-obj.dataTable.Age,0,sigma));
+                    z2=sum(normpdf(ageRange-obj.dataTable.Age,0,sigma));
+                    z=z1./z2;
+
+                    if strcmpi(bootCImethod,'standard')
+                    CI = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
+                    l = z-CI;
+                    u = z+CI;
+                    l = l(:);
+                    u = u(:);
+                    else
+                        [~,l,u] = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
+                    end
+                    c = brewermap(1,'Set2');
+                    set(fh,'defaultLegendAutoUpdate','off');
+                    for ii = 1:size(l,2)
+                        fill([ageRange fliplr(ageRange)],[l(:,ii)' fliplr(u(:,ii)')],c(ii,:),'LineStyle','none','FaceAlpha',.3);
+                        hold on
+                    end
+                    plot(ageRange,z,'-k','LineWidth',2)
+                    reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
+                    beta(k) = reg(2);
+                    meanKerReg(k)= mean(z);
+                    percXlim = prctile(obj.dataTable.Age,[5 95]);
+                    smallAgeRange = ageRange(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                    smallZ = z(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                    smallL = l(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                    smallU = u(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                    regsmallAgeRange = regress(smallZ',[ones(size(smallAgeRange,2),1) smallAgeRange']);
+                    betasmallAgeRange(k) = regsmallAgeRange(2);
+
+                    reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
+
+                    axis tight
+                    xlabel('Age')
+                    [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
+                    title("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')))
+                else
+                    dataMF = obj.dataTable;
+                    dataMF(matches(dataMF.Gender,'Other'),:) = [];
+                    genderLabels = unique(dataMF.Gender);
+                    c = brewermap(numel(genderLabels)+1,'Set2');
+                    for gg = 1:numel(genderLabels)
+                        data = dataMF(matches(dataMF.Gender, genderLabels{gg}),:);
+                        emoDataCurGend = data.(obj.FactorNames{k});
+                        ageRange = min(data.Age):max(data.Age);
+                        [B,BG] = groupsummary(emoDataCurGend,data.Age,@mean);
+                        m = nan(1,max(BG));
+                        m(BG) = B;
+                        % Kernel regression with constant bandwidth
+                        z1=sum(emoDataCurGend.*normpdf(ageRange-data.Age,0,sigma));
+                        z2=sum(normpdf(ageRange-data.Age,0,sigma));
+                        z=z1./z2;
+
+                        if strcmpi(bootCImethod,'standard')
+                        CI = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend,95,iter,sigma,bootCImethod);
+                        l = z-CI;
+                        u = z+CI;
+                        l = l(:);
+                        u = u(:);
+                        else
+                            [~,l,u] = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend,95,iter,sigma,bootCImethod);
+                        end
+                        set(fh,'defaultLegendAutoUpdate','off');
+                        for ii = 1:size(l,2)
+                            fill([ageRange fliplr(ageRange)],[l(:,ii)' fliplr(u(:,ii)')],c(gg+1,:),'LineStyle','none','FaceAlpha',.3);
+                            hold on
+                        end
+                        p = plot(ageRange,z,'-k','LineWidth',2);
+                        p.Annotation.LegendInformation.IconDisplayStyle = 'off';
+
+                        reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
+                        percXlim = prctile(data.Age,[5 95]);
+                        smallAgeRange = ageRange(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                        smallZ = z(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                        smallL{gg} = l(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                        smallU{gg} = u(ageRange >= percXlim(1) & ageRange <= percXlim(2));
+                        regsmallAgeRange = regress(smallZ',[ones(size(smallAgeRange,2),1) smallAgeRange']);
+                        betasmallAgeRange(k) = regsmallAgeRange(2);
+                        reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
+                        axis tight
+                        if gg == 1
+                            xlabel('Age')
+                            [~,T] = anovan(dataMF.(obj.FactorNames{k}),findgroups(dataMF.AgeCategory),'Display','off');
+                            [~,T] = anovan(dataMF.(obj.FactorNames{k}),{findgroups(dataMF.AgeCategory),findgroups(dataMF.Gender)},'Display','off','model','interaction');
+                            ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                            genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                            ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
+                            title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
+                            %title(join(['Age ' ageAN '; Gender ' genderAN],''))
+                        end
+                    end
+                    ylabel(emoLabels{k})
+                    grid on
+                    %xlabel('Age group')
+                    if strcmpi(byGender,'Yes')
+                        curMinCI = min(cellfun(@min,smallL));
+                        curMaxCI = max(cellfun(@max,smallU));
+                    else
+                        curMinCI = min(smallL);
+                        curMaxCI = max(smallU);
+                    end
+                    if k > 1
+                        minCI = min(minCI,curMinCI);
+                        maxCI = max(maxCI,curMaxCI);
+                    else
+                        [minCI, maxCI] = deal(curMinCI,curMaxCI);
+                    end
+                end
+            end
+            for k = 1:numel(ax)
+                ax{k}.YLim = [minCI,maxCI];
+                ax{k}.XLim = percXlim;
+                %extra = diff(ax{k}.YLim) * 1/100;
+                %ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
+            end
+
+            if strcmpi(byGender,'Yes')
+                lgd = legend;
+                lgd.String = unique(dataMF.Gender);
+                lgd.Layout.Tile = 'north';
+                lgd.Orientation = 'horizontal';
+            end
+            [S I] = sort(betasmallAgeRange,'descend');
+            for k = 1:numel(ax)
+                ax{I(k)}.Layout.Tile = k;
+            end
+        end
+        function scatterRegMean(obj)
+            emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);
+            figure
+            scatter(obj.scatterPlotData(1,:),obj.scatterPlotData(2,:))
+            hold on
+            text(obj.scatterPlotData(1,:),obj.scatterPlotData(2,:),emoLabels,'Verticalalignment','top','HorizontalAlignment','Center')
+            xlabel('slope of kernel regression curve')
+            ylabel('mean of kernel regression curve')
+            [r p] = corr(obj.scatterPlotData(1,:)',obj.scatterPlotData(2,:)');
+            l = lsline
+            df = num2str(numel(obj.scatterPlotData(1,:))-2);
+            rtext = ['r(' df ') = ' num2str(r,'%.2f')];
+            ptext = ['p = ' strrep(num2str(p,'%.3f'),'0.','.')];
+            text(l.XData(2),l.YData(2),{rtext;ptext})
+            grid on
+        end
+        function reasonsVarsBarplots(obj)
+        % crashes for very long names
+            byGenderOpts = {'No','Yes'};
+            for kk = 1:numel(byGenderOpts)
+                if kk == 1
+                    byGender = 'No';
+                else
+                    byGender = 'Yes';
+                end
+                trackOpts = {'No','Yes'};
+                for jj = 1:numel(trackOpts)
+                    mydata = obj.dataTable;
+                    if jj == 1
+                        track = 'No'; % Yes: reasons for selected track; No: reasons for music in general
+                    else
+                        track = 'Yes'; % Yes: reasons for selected track; No: reasons for music in general
+                    end
+                    addpath('~/Documents/MATLAB/distinguishable_colors')
+                    mydata.AgeCategory = renamecats(mydata.AgeCategory,{'Under 20','Over 60'},{'<20','60+'});
+                    fh = figure();
+                    fh.WindowState = 'maximized';
+                    reasonTypesKey = {'Music_','Track_'};
+                    switch lower(track)
+                      case 'no'
+                        flag = 1;
+                      case 'yes'
+                        flag = 2;
+                    end
+                    REASONData = mydata(:,contains(mydata.Properties.VariableNames,reasonTypesKey{flag}));
+                    myTitle = obj.reasonTypes{flag};
+                    REASONLabels = REASONData.Properties.VariableNames;
+                    [~,TF] = rmmissing(REASONData);
+                    mydata(TF,:) = [];
+                    S = size(REASONData,2);
+                    su = stats.explore_age.numSubplots(S);
+                    tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
+                    tl.TileSpacing = 'Compact';
+                    tl.Padding = 'None';
+                    for k = 1:size(REASONData,2)
+                        ax{k} = nexttile;
+                        if strcmpi(byGender,'No')
+                            G = groupsummary(mydata,"AgeCategory","Mean",REASONLabels{k});
+                            %Gsd = groupsummary(mydata,"AgeCategory","std",REASONLabels{k});
+                            meanData = G.(['mean_' REASONLabels{k}]);
+                            b = bar(G.(['mean_' REASONLabels{k}]));
+                            c = categories(mydata.AgeCategory);
+                            for j = 1:numel(c)
+                                data = mydata.(REASONLabels{k})(matches(string(mydata.AgeCategory),c{j}));
+                                ci(:,j) = bootci(10000,@mean,data);
+                            end
+                            hold on
+                            e = errorbar(1:numel(meanData),meanData,ci(1,:),ci(2,:));
+                            e.LineStyle = 'none';
+                            e.LineWidth = 2;
+                            str = join([string(groupsummary(mydata,"AgeCategory").AgeCategory) + " (N=" groupsummary(mydata,"AgeCategory").GroupCount + ")"],'');
+                            xticklabels(str);
+                            xtickangle(45)
+                            [~,T] = anovan(mydata.(REASONLabels{k}),findgroups(mydata.AgeCategory),'Display','off');
+                            title("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')))
+                        else
+                            dataMF = mydata;
+                            dataMF(matches(dataMF.Gender,'Other'),:) = [];
+                            G = groupsummary(dataMF,{'AgeCategory','Gender'},"Mean",REASONLabels{k});
+                            meanData = G.(['mean_' REASONLabels{k}]);
+                            dataBar = reshape(meanData,2,[])';
+                            b = bar(dataBar);
+                            [ngroups, nbars] = size(dataBar);
+                            groupwidth = min(0.8, nbars/(nbars + 1.5));
+                            b(1).FaceColor = [0.8500 0.3250 0.0980];
+                            b(2).FaceColor = [0 0.4470 0.7410];
+                            [GR,ID1,ID2] = findgroups(dataMF.AgeCategory,dataMF.Gender);
+                            for j = 1:numel(unique(GR))
+                                data = dataMF.(REASONLabels{k})(GR == j);
+                                ci(:,j) = bootci(10000,@mean,data);
+                            end
+                            hold on
+                            lo = reshape(ci(1,:),2,[])';
+                            up = reshape(ci(2,:),2,[])';
+                            for i = 1:nbars
+                                % Calculate center of each bar
+                                x{i} = (1:ngroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*nbars);
+                                e = errorbar(x{i}, dataBar(:,i), lo(:,i),up(:,i), 'k', 'linestyle', 'none','LineWidth', 2);
+                            end
+                            str = join([string(G.AgeCategory) + " (N=" G.GroupCount + ")"],'');
+                            xticks(reshape(cell2mat(x'),[],1))
+                            xticklabels(str)
+                            xtickangle(45)
+                            [~,T] = anovan(mydata.(REASONLabels{k}),{findgroups(mydata.AgeCategory),findgroups(mydata.Gender)},'Display','off','model','interaction');
+                    ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                    genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                    ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
+                    title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
+                    % ageAN = "F("+string(T(2,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                    % genderAN = "F("+string(T(3,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                    % title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'')})
+                    %title(join(['Age ' ageAN '; Gender ' genderAN],''))
+                        end
+                        ylabel(strrep(obj.reasonLabels{k},'_',' '))
+                        grid on
+                        %xlabel('Age group')
+                        curMinCI = min(meanData-ci(1,:)');
+                        curMaxCI = max(meanData+ci(1,:)');
+                        if k > 1
+                            minCI = min(minCI,curMinCI);
+                            maxCI = max(maxCI,curMaxCI);
+                        else
+                            [minCI, maxCI] = deal(curMinCI,curMaxCI);
+                        end
+                    end
+                    for k = 1:numel(ax)
+                        ax{k}.YLim = [minCI,maxCI];
+                        extra = diff(ax{k}.YLim) * 10/100;
+                        ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
+                    end
+
+                    if strcmpi(byGender,'Yes')
+                        lgd = legend;
+                        lgd.String = unique(dataMF.Gender);
+                        lgd.Layout.Tile = 'north';
+                        lgd.Orientation = 'horizontal';
+                    end
+                    sgtitle(myTitle)
+                end
+            end
+        end
+        function icVarsBarplots(obj)
+        % crashes for very long names
+            byGender = 'No';
+            addpath('~/Documents/MATLAB/distinguishable_colors')
+            % shorter versions of obj.icVars
+            obj.dataTable.AgeCategory = renamecats(obj.dataTable.AgeCategory,{'Under 20','Over 60'},{'<20','60+'});
+            fh = figure();
+            fh.WindowState = 'maximized';
+            ICData = obj.dataTable(:,ICLabels);
+            [~,TF] = rmmissing(ICData);
+            obj.dataTable(TF,:) = [];
+            S = size(ICData,2);
+            su = stats.explore_age.numSubplots(S);
+            tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
+            tl.TileSpacing = 'Compact';
+            tl.Padding = 'None';
+            for k = 1:size(ICData,2)
+                ax{k} = nexttile;
+                if strcmpi(byGender,'No')
+                    G = groupsummary(obj.dataTable,"AgeCategory","Mean",ICLabels{k});
+                    %Gsd = groupsummary(obj.dataTable,"AgeCategory","std",ICLabels{k});
+                    meanData = G.(['mean_' ICLabels{k}]);
+                    b = bar(G.(['mean_' ICLabels{k}]));
+                    c = categories(obj.dataTable.AgeCategory);
+                    for j = 1:numel(c)
+                        data = obj.dataTable.(ICLabels{k})(matches(string(obj.dataTable.AgeCategory),c{j}));
+                        ci(:,j) = bootci(10000,@mean,data);
+                    end
+                    hold on
+                    e = errorbar(1:numel(meanData),meanData,ci(1,:),ci(2,:));
+                    e.LineStyle = 'none';
+                    e.LineWidth = 2;
+                    str = join([string(groupsummary(obj.dataTable,"AgeCategory").AgeCategory) + " (N=" groupsummary(obj.dataTable,"AgeCategory").GroupCount + ")"],'');
+                    xticklabels(str);
+                    [~,T] = anovan(obj.dataTable.(ICLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
+                    title("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')))
+                else
+                    dataMF = obj.dataTable;
+                    dataMF(matches(dataMF.Gender,'Other'),:) = [];
+                    G = groupsummary(dataMF,{'AgeCategory','Gender'},"Mean",ICLabels{k});
+                    meanData = G.(['mean_' ICLabels{k}]);
+                    dataBar = reshape(meanData,2,[])';
+                    b = bar(dataBar);
+                    [ngroups, nbars] = size(dataBar);
+                    groupwidth = min(0.8, nbars/(nbars + 1.5));
+                    b(1).FaceColor = [0.8500 0.3250 0.0980];
+                    b(2).FaceColor = [0 0.4470 0.7410];
+                    [GR,ID1,ID2] = findgroups(dataMF.AgeCategory,dataMF.Gender);
+                    for j = 1:numel(unique(GR))
+                        data = dataMF.(ICLabels{k})(GR == j);
+                        ci(:,j) = bootci(10000,@mean,data);
+                    end
+                    hold on
+                    lo = reshape(ci(1,:),2,[])';
+                    up = reshape(ci(2,:),2,[])';
+                    for i = 1:nbars
+                        % Calculate center of each bar
+                        x{i} = (1:ngroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*nbars);
+                        e = errorbar(x{i}, dataBar(:,i), lo(:,i),up(:,i), 'k', 'linestyle', 'none','LineWidth', 2);
+                    end
+                    str = join([string(G.AgeCategory) + " (N=" G.GroupCount + ")"],'');
+                    xticks(reshape(cell2mat(x'),[],1))
+                    xticklabels(str)
+                    [~,T] = anovan(obj.dataTable.(ICLabels{k}),{findgroups(obj.dataTable.AgeCategory),findgroups(obj.dataTable.Gender)},'Display','off');
+
+                    ageAN = "F("+string(T(2,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                    genderAN = "F("+string(T(3,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                    title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'')})
+                    %title(join(['Age ' ageAN '; Gender ' genderAN],''))
+                end
+                ylabel(strrep(ICLabels{k},'_',' '))
                 grid on
                 %xlabel('Age group')
                 curMinCI = min(meanData-ci(1,:)');
@@ -469,6 +1126,70 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         end
     end
     methods (Static)
+        function [lower upper] = confidenceLimits_old(x,y,p,k,sigma)
+        % Kernel regression with constant bandwidth
+
+        % this should be done for each of the existing ages
+        % separately, maybe: for each age, do a datasample with
+        % replacement with the number
+        % of people that we have from that age.
+            p1 = (100-p)/2;
+            p2 = 100-(100-p)/2;
+            ageRange = min(x):max(x);
+            for j = 1:k
+                ys = y;
+                for ii = 1:numel(ageRange)
+                logAge = x == ageRange(ii);
+                numParticPerAgeYear(ii) = sum(logAge);
+                [d idx] = datasample(y(logAge),size(y(logAge),1));
+                ys(logAge) = d;
+                end
+                [B,BG] = groupsummary(ys,x,@mean);
+                m = nan(1,max(BG));
+                m(BG) = B;
+                z1=sum(ys.*normpdf(ageRange-x,0,sigma));
+                z2=sum(normpdf(ageRange-x,0,sigma));
+                z=z1./z2;
+                r(j,:) = z;
+            end
+            lower = squeeze(prctile(r,p1,1))';
+            upper = squeeze(prctile(r,p2,1))';
+        end
+        function [CI,lower,upper] = confidenceLimits(x,y,p,k,sigma,bootCImethod)
+        %[lower upper]: use the quantile method
+        %CI = uses the standard method
+        % Kernel regression with constant bandwidth
+
+        % this should be done for each of the existing ages
+        % separately, maybe: for each age, do a datasample with
+        % replacement with the number
+        % of people that we have from that age.
+            p1 = (100-p)/2;
+            p2 = 100-(100-p)/2;
+            ageRange = min(x):max(x);
+            for j = 1:k
+                data = [x,y];% original data
+                ds = datasample(data,size(data,1));% data sample
+                [B,BG] = groupsummary(ds(:,2),ds(:,1),@mean);% mean
+                                                             % feature value
+                                                             % for
+                                                             % each
+                                                             % age
+                                                             % year
+                                                             % in
+                                                             % the
+                                                             % data sample
+                m = nan(1,max(BG));
+                m(BG) = B;
+                z1=sum(ds(:,2).*normpdf(ageRange-ds(:,1),0,sigma));
+                z2=sum(normpdf(ageRange-ds(:,1),0,sigma));
+                z=z1./z2;
+                r(j,:) = z;
+            end
+            CI = -norminv((1-(p/100))/2).*sqrt(var(r));
+            lower = squeeze(prctile(r,p1,1))';
+            upper = squeeze(prctile(r,p2,1))';
+        end
         function [p,n]=numSubplots(n)
         % function [p,n]=numSubplots(n)
         %
