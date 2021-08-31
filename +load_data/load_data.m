@@ -360,10 +360,6 @@ classdef load_data
             end
         end
         function obj = survey_duration(obj)
-            if obj.showPlotsAndText == 1
-                disp('---Removing responses with low survey duration');
-                disp(['Removing responses under: ' num2str(obj.durationThr) ' minutes']);
-            end
             obj.dataTable.Duration = minutes(obj.dataTable{:,'EndDate'} - ...
                 obj.dataTable{:,'StartDate'});
             %exclude responses above 30 minutes
@@ -393,10 +389,6 @@ classdef load_data
             for i=1:size(obj.dataTable)
                 %HARDCODED LOCATION OF EMOTIONS
                 responderVariability(i) = std(table2array(obj.dataTable(i,16:48)));
-            end
-            if obj.showPlotsAndText == 1
-                disp('---Removing responses based on Responder Variability')
-                disp('Threshold: 3 Median Absolute Deviations below median')
             end
             %isoutlier(responderVariability)
             MAD_limit = 1.4826*median(abs(responderVariability-...
