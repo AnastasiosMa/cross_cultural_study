@@ -3,7 +3,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj)
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj);indColAgeDensity(obj)
     properties
-        FactorNames = {'TendernessLove','TriumphEnergy','PainSadness','PleasureHappiness'};
+        FactorNames
         countryType = 'Country_childhood';
         reasonLabels = {'for background purposes'
                         'to bring up memories'
@@ -155,9 +155,11 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         function obj = emoAgeviolin(obj)
             addpath('~/Documents/MATLAB/violin')
             emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
+
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             figure
             emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
@@ -288,6 +290,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             addpath('~/Documents/MATLAB/distinguishable_colors')
             emoLabels = obj.FactorNames;
             emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
@@ -325,6 +328,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             addpath('~/Documents/MATLAB/distinguishable_colors')
             emoLabels = obj.FactorNames;
             emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
@@ -576,10 +580,11 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             bootCImethod = obj.bootCImethod;
             sigma = 5;
             iter = 100;
-            warning('check number of iterations')
+            warning('check number of iterations for confidence interval')
             addpath('~/Documents/MATLAB/distinguishable_colors')
             emoLabels = obj.FactorNames;
             emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
@@ -1082,6 +1087,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             addpath('~/Documents/MATLAB/brewermap')
         %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
             emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
@@ -1116,6 +1122,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         function obj = emoAge(obj)
         %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
             emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
@@ -1141,6 +1148,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         function obj = emoAgePositiveRate(obj)
         %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
             emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
