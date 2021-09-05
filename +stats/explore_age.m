@@ -331,7 +331,6 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
              obj.dataTable.AgeCategory = renamecats(obj.dataTable.AgeCategory,{'Under 20','Over 60'},{'<20','60+'});
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
-            S = size(emoData,2);
             fh = figure();
             fh.WindowState = 'maximized';
             S = size(emoData,2);
