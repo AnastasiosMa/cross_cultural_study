@@ -283,6 +283,43 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 lgd.Orientation = 'horizontal';
             end
         end
+        function obj = emoFactorsBoxplotsGender(obj)
+            close all
+            addpath('~/Documents/MATLAB/distinguishable_colors')
+            emoLabels = obj.FactorNames;
+            emo = do_factor_analysis(obj);
+            for k = 1:size(emo.FAScores,2)
+                FAs{k} = emo.FAScores(:,k);
+            end
+            obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
+            emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
+
+            S = size(emoData,2);
+            fh = figure();
+            su = stats.explore_age.numSubplots(S);
+            tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
+            tl.TileSpacing = 'Compact';
+            tl.Padding = 'None';
+            obj.dataTable(matches(obj.dataTable.Gender,'Other'),:) = [];
+            for k = 1:size(emoData,2)
+                ax{k} = nexttile;
+                obj.dataTable.(emoLabels{k});
+                b = boxchart(obj.dataTable.(emoLabels{k}),'groupbyColor',obj.dataTable.Gender,'Notch','on');
+                b(1).SeriesIndex = 2;
+                b(2).SeriesIndex = 1;
+                ylabel(emoLabels{k});
+                xticks('')
+                grid on;
+                [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.Gender),'Display','off');
+                title("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')));
+                hold on
+                G = groupsummary(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.Gender),'mean');
+                scatter([0.75 1.25],G,'xk')
+                axis square
+            end
+            linkaxes([ax{:}],'y')
+            savefigures('figures/emoFactorsBoxplotsGender/')
+        end
         function obj = emoFactorsBarplots(obj)
             byGender = 'Yes';
             addpath('~/Documents/MATLAB/distinguishable_colors')
