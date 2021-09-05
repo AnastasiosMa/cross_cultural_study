@@ -288,9 +288,9 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         function obj = emoFactorsBoxplotsGender(obj)
             close all
             addpath('~/Documents/MATLAB/distinguishable_colors')
-            emoLabels = obj.FactorNames;
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
+            emoLabels = obj.FactorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
@@ -326,9 +326,9 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         function obj = emoFactorsBarplots(obj)
             byGender = 'Yes';
             addpath('~/Documents/MATLAB/distinguishable_colors')
-            emoLabels = obj.FactorNames;
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
+            emoLabels = obj.FactorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
@@ -582,9 +582,9 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             iter = 100;
             warning('check number of iterations for confidence interval')
             addpath('~/Documents/MATLAB/distinguishable_colors')
-            emoLabels = obj.FactorNames;
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
+            emoLabels = obj.FactorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
