@@ -2,7 +2,7 @@ classdef explore_tipi < load_data.load_data
 %example: obj = stats.explore_tipi('responses_pilot/Music Listening Habits.csv','AllResponses');do_explore_tipi(obj);exploreTIPICategory(obj);TIPICategoryANOVA(obj)
 
     properties
-            FactorNames = {'TendernessLove','TriumphEnergy','PainSadness','PleasureHappiness'};
+            FactorNames
             countryType = 'Country_childhood';
     end
     methods
@@ -43,6 +43,7 @@ classdef explore_tipi < load_data.load_data
             for k = 1:size(a.FAScores,2)
                 FAs{k} = a.FAScores(:,k);
             end
+            obj.FactorNames = emo.factorNames;
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             obj.dataTable(:,16:48) = []; % REMOVE HARDCODED EMO LOCATIONS
             obj.dataTable = removevars(obj.dataTable,{'RespondentID','Childhood','Adulthood','Residence','Identity','Duration','Employment','Gender','Extraversion','Agreeableness','Conscientiousness','Emotional_Stability','Openness_Experiences'});

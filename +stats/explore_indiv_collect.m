@@ -9,7 +9,7 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
 %obj = stats.explore_indiv_collect();obj.filterMethod='BalancedSubgroups';obj=do_load_data(obj);obj=indColAgeDensity(obj);
 %obj = stats.explore_indiv_collect();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj = exploreICpca(obj);obj=indColPCAAgeDensity(obj);
     properties
-        FactorNames = {'TendernessLove','TriumphEnergy','PainSadness','PleasureHappiness'};
+        FactorNames
             countryType = 'Country_childhood';
     end
     methods
@@ -64,6 +64,7 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
+            obj.FactorNames = emo.factorNames;
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             obj.dataTableInd = find(matches(obj.dataTable.Properties.VariableNames, obj.icVars));
             obj.dataTable(any(isnan(obj.dataTable{:,obj.dataTableInd}),2),:) = [];
@@ -83,6 +84,7 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
+            obj.FactorNames = emo.factorNames;
         obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             obj.dataTableInd = find(matches(obj.dataTable.Properties.VariableNames, obj.icVars));
             obj.dataTable(any(isnan(obj.dataTable{:,obj.dataTableInd}),2),:) = [];
@@ -344,6 +346,7 @@ classdef explore_indiv_collect < load_data.load_data & stats.factor_analysis
             for k = 1:size(a.FAScores,2)
                 FAs{k} = a.FAScores(:,k);
             end
+            obj.FactorNames = a.factorNames;
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             obj.dataTable(:,16:48) = []; % REMOVE HARDCODED EMO LOCATIONS
             obj.dataTable = removevars(obj.dataTable,{'RespondentID','Childhood','Adulthood','Residence','Identity','Duration','Employment','Gender','Horizontal_individualism','Horizontal_collectivism','Vertical_individualism','Vertical_collectivism'});

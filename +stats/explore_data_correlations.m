@@ -2,7 +2,7 @@ classdef explore_data_correlations < load_data.load_data & stats.factor_analysis
 %example: obj = stats.explore_data_correlations();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj=do_explore_data_correlations(obj);correlate_features_and_plot(obj);steplm(obj)
 
     properties
-            FactorNames = {'TendernessLove','TriumphEnergy','PainSadness','PleasureHappiness'};
+            FactorNames
             data
     end
     methods
@@ -14,6 +14,7 @@ classdef explore_data_correlations < load_data.load_data & stats.factor_analysis
             for k = 1:size(a.FAScores,2)
                 FAs{k} = a.FAScores(:,k);
             end
+            obj.FactorNames = a.factorNames;
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             %obj.dataTable(:,16:48) = []; % REMOVE HARDCODED EMO LOCATIONS
             % remove variables that are difficult to make ordinal
