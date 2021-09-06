@@ -1016,6 +1016,67 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 lgd.Orientation = 'horizontal';
             end
         end
+        function obj = emoVarsRegressionScatter(obj)
+            fontSize = 12;
+            emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);
+            if strcmpi(obj.byGender,'Yes')
+                dataMF = obj.dataTable;
+                dataMF(matches(dataMF.Gender,'Other'),:) = [];
+                genderLabels = unique(dataMF.Gender);
+                emoData = dataMF(:,obj.dataTableInd);
+                age = dataMF.Age;
+                c = brewermap(numel(genderLabels)+1,'Set2');
+            g = get(groot,'defaultfigureposition');
+            g(3:4) = g(3:4)*2;
+            figure('Position',g)
+                for k = 1:numel(genderLabels)
+                    genderLog = string(dataMF.Gender) == genderLabels{k};
+                    ageGender{k} = age(genderLog);
+                    emoGender{k} = emoData(genderLog,:);
+                    for j = 1:size(emoGender{k},2)
+                        reg = regress(emoGender{k}{:,j},[ones(size(ageGender{k},1),1) ageGender{k}]);
+                        y(j,k) = reg(1);%intercept
+                        x(j,k) = reg(2);%slope
+                    end
+                end
+                p = plot(x',y','k','Color',[.5 .5 .5])
+                for k = 1:numel(p)
+                p(k).Annotation.LegendInformation.IconDisplayStyle = 'off';
+                end
+                hold on
+                grid on
+                for k = 1:numel(genderLabels)
+                    S = scatter(x(:,k),y(:,k));
+                    S.MarkerFaceColor = c(k+1,:);
+                    S.MarkerEdgeColor = c(k+1,:);
+                end
+                text(mean(x,2),mean(y,2),emoLabels,'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize)
+                set(gca,'FontSize', fontSize)
+                l = legend(genderLabels);
+            else
+                emoData = obj.dataTable(:,obj.dataTableInd);
+                age = obj.dataTable.Age;
+                for k = 1:size(emoData,2)
+                    reg = regress(emoData{:,k},[ones(size(age,1),1) age]);
+                    y(k) = reg(1);%intercept
+                    x(k) = reg(2);%slope
+                end
+                scatter(x,y)
+                hold on
+                grid on
+                text(x,y,emoLabels,'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize)
+                grid on
+                [r p] = corr(x',y');
+                l = lsline
+                df = num2str(numel(x)-2);
+                rtext = ['r(' df ') = ' num2str(r,'%.2f')];
+                ptext = ['p = ' strrep(num2str(p,'%.3f'),'0.','.')];
+                text(l.XData(2),l.YData(2),{rtext;ptext},'FontSize',fontSize-2);
+            end
+            xlabel('Slope')
+            ylabel('Intercept')
+            set(gca,'FontSize', fontSize)
+        end
         function obj = emoVarsKerReg(obj)
             addpath('~/Documents/MATLAB/distinguishable_colors')
             addpath('~/Documents/MATLAB/ksr_vw')

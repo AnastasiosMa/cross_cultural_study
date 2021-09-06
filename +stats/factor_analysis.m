@@ -6,7 +6,7 @@ classdef factor_analysis < load_data.load_data
         rotateMethod = 'Varimax';
         emo
         emoLabels
-        showPlotsAndTextFA = 0;
+        showPlotsAndTextFA = 1;
         distanceM = 'euclidean';
         removeLeastRatedTerms = 1;
         removalPercentage = .1;
