@@ -120,6 +120,10 @@ classdef factor_analysis < load_data.load_data
                disp(fName)
             end
             if obj.showPlotsAndTextFA==1
+                disp(['*** SUM OF SQUARED LOADINGS ***'])
+                ssL = array2table(sum(obj.FAcoeff.^2),'VariableNames',obj.factorNames);
+                disp(ssL)
+                %disp([': ' num2str(sum(obj.FAcoeff.^2))])
                 figure
                 heatmap(obj.FAcoeff)
                 ax = gca; ax.YDisplayLabels = num2cell(obj.emoLabels);
