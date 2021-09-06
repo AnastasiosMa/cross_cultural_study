@@ -548,12 +548,12 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 curMinCI = min(smallL);
                 curMaxCI = max(smallU);
                 end
-                    if k > 1
-                        minCI = min(minCI,curMinCI);
-                        maxCI = max(maxCI,curMaxCI);
-                    else
-                        [minCI, maxCI] = deal(curMinCI,curMaxCI);
-                    end
+                if k > 1
+                    minCI = min(minCI,curMinCI);
+                    maxCI = max(maxCI,curMaxCI);
+                else
+                    [minCI, maxCI] = deal(curMinCI,curMaxCI);
+                end
             end
             for k = 1:numel(ax)
                 ax{k}.YLim = [minCI,maxCI];
@@ -610,11 +610,11 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     z=z1./z2;
 
                     if strcmpi(bootCImethod,'standard')
-                    CI = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
-                    l = z-CI;
-                    u = z+CI;
-                    l = l(:);
-                    u = u(:);
+                        CI = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
+                        l = z-CI;
+                        u = z+CI;
+                        l = l(:);
+                        u = u(:);
                     else
                         [~,l,u] = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
                     end
@@ -660,11 +660,11 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                         z=z1./z2;
 
                         if strcmpi(bootCImethod,'standard')
-                        CI = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend,95,iter,sigma,bootCImethod);
-                        l = z-CI;
-                        u = z+CI;
-                        l = l(:);
-                        u = u(:);
+                            CI = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend,95,iter,sigma,bootCImethod);
+                            l = z-CI;
+                            u = z+CI;
+                            l = l(:);
+                            u = u(:);
                         else
                             [~,l,u] = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend,95,iter,sigma,bootCImethod);
                         end
@@ -697,22 +697,22 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                             %title(join(['Age ' ageAN '; Gender ' genderAN],''))
                         end
                     end
-                    ylabel(emoLabels{k})
-                    grid on
-                    %xlabel('Age group')
-                    if strcmpi(byGender,'Yes')
-                        curMinCI = min(cellfun(@min,smallL));
-                        curMaxCI = max(cellfun(@max,smallU));
-                    else
-                        curMinCI = min(smallL);
-                        curMaxCI = max(smallU);
-                    end
-                    if k > 1
-                        minCI = min(minCI,curMinCI);
-                        maxCI = max(maxCI,curMaxCI);
-                    else
-                        [minCI, maxCI] = deal(curMinCI,curMaxCI);
-                    end
+                end
+                ylabel(emoLabels{k})
+                grid on
+                %xlabel('Age group')
+                if strcmpi(byGender,'Yes')
+                    curMinCI = min(cellfun(@min,smallL));
+                    curMaxCI = max(cellfun(@max,smallU));
+                else
+                    curMinCI = min(smallL);
+                    curMaxCI = max(smallU);
+                end
+                if k > 1
+                    minCI = min(minCI,curMinCI);
+                    maxCI = max(maxCI,curMaxCI);
+                else
+                    [minCI, maxCI] = deal(curMinCI,curMaxCI);
                 end
             end
             for k = 1:numel(ax)
