@@ -2,6 +2,9 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj=reasonsAge(obj);
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj)
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj);indColAgeDensity(obj)
+%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoFactorsDensity(obj)
+%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);factorSolutionAgeGenderReplications(obj)
+
     properties
         FactorNames
         countryType = 'Country_childhood';
@@ -575,7 +578,48 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 ax{I(k)}.Layout.Tile = k;
             end
         end
+        function obj = factorSolutionAgeGenderReplications(obj)
+            addpath('~/Documents/MATLAB/brewermap')
+            addpath('~/Documents/MATLAB/distinguishable_colors')
+            dataMF = obj.dataTable;
+            dataMF(matches(dataMF.Gender,'Other'),:) = [];
+            genderCats = unique(dataMF.Gender);
+            dataMF.AgeCategory = string(dataMF.AgeCategory);
+            dataMF.AgeCategory = strrep(dataMF.AgeCategory,' ','-');
+            dataMF.AgeCategory = strrep(dataMF.AgeCategory,'-','_');
+            dataMF.AgeCategory = append('age_',dataMF.AgeCategory);
+            ageCats = unique(dataMF.AgeCategory);
+            for k = 1:numel(genderCats)
+                data.(genderCats{k}).allData = dataMF(matches(dataMF.Gender,genderCats{k}),:);
+                for j = 1:numel(ageCats)
+                    data.(genderCats{k}).(ageCats{j}) = data.(genderCats{k}).allData(matches(data.(genderCats{k}).allData.AgeCategory,ageCats{j}),:);
+                    a = obj;
+                    a.dataTable = data.(genderCats{k}).(ageCats{j});
+
+                    f = do_factor_analysis(a);
+                    disp('')
+                    disp([genderCats{k} ' ' ageCats{j}])
+                    disp(['N=' num2str(size(data.(genderCats{k}).(ageCats{j}),1))])
+                    disp(join(string(['Factor Names: ' f.factorNames])))
+                    disp('Sum of squared loadings:')
+                    disp(f.sumSquaredLoadings)
+                    disp('Maximum loading values:')
+                    disp(f.maxLoadingValues)
+                    dataFA.(genderCats{k}).(ageCats{j}) = f;
+                end
+            end
+
+
+            emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
+            emoLabels = obj.FactorNames;
+            for k = 1:size(emo.FAScores,2)
+                FAs{k} = emo.FAScores(:,k);
+            end
+
+        end
         function obj = emoFactorsDensity(obj)
+            addpath('~/Documents/MATLAB/brewermap')
             byGender = obj.byGender;
             bootCImethod = obj.bootCImethod;
             sigma = 5;

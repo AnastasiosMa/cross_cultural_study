@@ -6,7 +6,7 @@ classdef factor_analysis < load_data.load_data
         rotateMethod = 'Varimax';
         emo
         emoLabels
-        showPlotsAndTextFA = 1;
+        showPlotsAndTextFA = 0;
         distanceM = 'euclidean';
         removeLeastRatedTerms = 1;
         removalPercentage = .1;
@@ -14,7 +14,9 @@ classdef factor_analysis < load_data.load_data
         removeEmoTermsManually = 0; %select manually emotions to remove
         %emoToRemove  % = {'Spirituality','Longing','Amusement','Security','Belonging'};
         emoToRemove% = {'Tension','Eroticism'};
-        PCNum =4;%number of factors
+        PCNum =3;%number of factors
+        sumSquaredLoadings
+        maxLoadingValues
         FAcoeff
         FAScores
         factorNames
@@ -119,10 +121,11 @@ classdef factor_analysis < load_data.load_data
                fName = array2table(obj.factorNames','VariableNames',{'Factor Names'});
                disp(fName)
             end
+            obj.maxLoadingValues = array2table(max(obj.FAcoeff),'VariableNames',obj.factorNames);
+            obj.sumSquaredLoadings = array2table(sum(obj.FAcoeff.^2),'VariableNames',obj.factorNames);
             if obj.showPlotsAndTextFA==1
                 disp(['*** SUM OF SQUARED LOADINGS ***'])
-                ssL = array2table(sum(obj.FAcoeff.^2),'VariableNames',obj.factorNames);
-                disp(ssL)
+                disp(obj.sumSquaredLoadings)
                 %disp([': ' num2str(sum(obj.FAcoeff.^2))])
                 figure
                 heatmap(obj.FAcoeff)
