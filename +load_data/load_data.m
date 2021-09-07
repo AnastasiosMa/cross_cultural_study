@@ -17,7 +17,7 @@ classdef load_data
         TIPIscalesNames = {'Extraversion','Agreeableness','Conscientiousness','Emotional_Stability','Openness_Experiences'};
         ICscalesNames = {'Horizontal_individualism','Vertical_individualism','Horizontal_collectivism','Vertical_collectivism'};
         icVars
-        durationThr = 4; %Duration Threshold to exclude responses (in minutes)
+        durationThr = 5; %Duration Threshold to exclude responses (in minutes)
         excludeShortResponses = 1; %Exclude responses below duration threshold
         excludeRepetativeResponses = 1; %Exclude responses with repetative answers
         excludeResponsesFromFile = 1;
