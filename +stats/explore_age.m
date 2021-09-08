@@ -3,6 +3,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj)
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj);indColAgeDensity(obj)
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoFactorsDensity(obj)
+%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoVarsRegressionScatter(obj)
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);factorSolutionAgeGenderReplications(obj)
 
     properties
@@ -1079,6 +1080,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     emoGender{k} = emoData(genderLog,:);
                     for j = 1:size(emoGender{k},2)
                         reg = regress(emoGender{k}{:,j},[ones(size(ageGender{k},1),1) ageGender{k}]);
+                        [corrR(j,k) corrP(j,k)] = corr(emoGender{k}{:,j}, ageGender{k});
                         y(j,k) = reg(1);%intercept
                         x(j,k) = reg(2);%slope
                     end
@@ -1091,10 +1093,17 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 grid on
                 for k = 1:numel(genderLabels)
                     S = scatter(x(:,k),y(:,k));
+
                     S.MarkerFaceColor = c(k+1,:);
                     S.MarkerEdgeColor = c(k+1,:);
                 end
-                text(mean(x,2),mean(y,2),emoLabels,'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize)
+                rText = arrayfun(@(x) strrep(num2str(x,'%.2f'),'0.','.'),corrR,'un',0);
+                pStarsText = stats.correlate_reasons.makestars(corrP);
+                corrsText = string(rText) + string(pStarsText);
+
+                %text(x(:),y(:),corrsText(:),'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize-3);
+
+                text(mean(x,2),mean(y,2),emoLabels,'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize);
                 set(gca,'FontSize', fontSize)
                 l = legend(genderLabels);
             else
@@ -1102,12 +1111,14 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 age = obj.dataTable.Age;
                 for k = 1:size(emoData,2)
                     reg = regress(emoData{:,k},[ones(size(age,1),1) age]);
+                    [corrR(j,k) corrP(j,k)] = corr(emoData{:,k},age);
                     y(k) = reg(1);%intercept
                     x(k) = reg(2);%slope
                 end
                 scatter(x,y)
                 hold on
                 grid on
+
                 text(x,y,emoLabels,'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize)
                 grid on
                 [r p] = corr(x',y');
