@@ -377,7 +377,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
-             obj.dataTable.AgeCategory = renamecats(obj.dataTable.AgeCategory,{'Under 20','Over 60'},{'<20','60+'});
+            obj.dataTable.AgeCategory = renamecats(obj.dataTable.AgeCategory,{'Under 20','Over 60'},{'<20','60+'});
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
             fh = figure();
@@ -434,7 +434,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     str = join([string(G.AgeCategory) + " (N=" G.GroupCount + ")"],'');
                     xticks(reshape(cell2mat(x'),[],1))
                     xticklabels(str)
-                    [~,T] = anovan(obj.dataTable.(emoLabels{k}),{findgroups(obj.dataTable.AgeCategory),findgroups(obj.dataTable.Gender)},'Display','off','model','interaction');
+                    [~,T] = anovan(dataMF.(emoLabels{k}),{findgroups(dataMF.AgeCategory),findgroups(dataMF.Gender)},'Display','off','model','interaction');
                     ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
                     genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
                     ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
