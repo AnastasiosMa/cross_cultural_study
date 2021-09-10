@@ -5,7 +5,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoFactorsDensity(obj)
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoVarsRegressionScatter(obj)
 %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);factorSolutionAgeGenderReplications(obj)
-
+%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoVarsRegressionScatter(obj)
     properties
         FactorNames
         countryType = 'Country_childhood';
@@ -290,6 +290,47 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             end
         end
         function obj = emoFactorsBoxplotsGender(obj)
+            close all
+            addpath('~/Documents/MATLAB/distinguishable_colors')
+            emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
+            emoLabels = obj.FactorNames;
+            for k = 1:size(emo.FAScores,2)
+                FAs{k} = emo.FAScores(:,k);
+            end
+            obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
+            emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
+
+            S = size(emoData,2);
+            fh = figure();
+            su = stats.explore_age.numSubplots(S);
+            tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
+            tl.TileSpacing = 'None';
+            tl.Padding = 'None';
+            obj.dataTable(matches(obj.dataTable.Gender,'Other'),:) = [];
+            for k = 1:size(emoData,2)
+                ax{k} = nexttile;
+                obj.dataTable.(emoLabels{k});
+                b = boxchart(obj.dataTable.(emoLabels{k}),'groupbyColor',obj.dataTable.Gender,'Notch','on');
+                b(1).SeriesIndex = 2;
+                b(2).SeriesIndex = 1;
+                xlabel(emoLabels{k});
+                if k > 1
+                yticks('')
+                end
+                xticks('')
+                [~, ttestp, ~, tteststats] = ttest2(obj.dataTable.(emoLabels{k})(string(obj.dataTable.Gender) == 'Female'),obj.dataTable.(emoLabels{k})(string(obj.dataTable.Gender) == 'Male'));
+                mytitle=['t(' num2str(tteststats.df) ') = ' num2str(tteststats.tstat,'%.2f') ', p = ' strrep(num2str(ttestp,'%.3f'),'0.','.')];
+                title(mytitle);
+                hold on
+                G = groupsummary(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.Gender),'mean');
+                plot([0.75; 1.25],G,'xk')
+                axis square
+            end
+            linkaxes([ax{:}],'y')
+            savefigures('figures/emoFactorsBoxplotsGender/')
+        end
+        function obj = emoFactorsBoxplotsGender_old(obj)
             close all
             addpath('~/Documents/MATLAB/distinguishable_colors')
             emo = do_factor_analysis(obj);
@@ -618,6 +659,41 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 FAs{k} = emo.FAScores(:,k);
             end
 
+        end
+        function obj = MeanEmotionRatingsAgeGender(obj)
+            addpath('~/Documents/MATLAB/brewermap')
+            addpath('~/Documents/MATLAB/distinguishable_colors')
+            dataMF = obj.dataTable;
+            dataMF(matches(dataMF.Gender,'Other'),:) = [];
+            genderCats = unique(dataMF.Gender);
+            dataMF.AgeCategory = string(dataMF.AgeCategory);
+            dataMF.AgeCategory = strrep(dataMF.AgeCategory,' ','-');
+            dataMF.AgeCategory = strrep(dataMF.AgeCategory,'-','_');
+            dataMF.AgeCategory = append('age_',dataMF.AgeCategory);
+            dataMF.AgeCategory = categorical(dataMF.AgeCategory);
+            dataMF.AgeCategory = reordercats(dataMF.AgeCategory,circshift(categories(dataMF.AgeCategory),1));
+            ageCats = unique(dataMF.AgeCategory);
+            figure
+            t = tiledlayout('flow');
+            t.TileIndexing = 'columnmajor';
+            for k = 1:numel(genderCats)
+                data.(genderCats{k}).allData = dataMF(matches(dataMF.Gender,genderCats{k}),:);
+                for j = 1:numel(ageCats)
+                    nexttile
+                    data.(genderCats{k}).(string(ageCats(j))) = data.(genderCats{k}).allData(data.(genderCats{k}).allData.AgeCategory == ageCats(j),:);
+                    a = obj;
+                    emoTerms = a.dataTable.Properties.VariableNames(a.dataTableInd);
+                    a.dataTable = data.(genderCats{k}).(string(ageCats(j)));
+                    [S I] = sort(mean(a.dataTable{:,a.dataTableInd}),'Descend');
+                    bar(S)
+                    xticks(1:numel(S))
+                    xticklabels(emoTerms(I))
+                    grid on
+                    mytitle = [genderCats{k} ' ' string(ageCats(j)) ' (N=' num2str(size(data.(genderCats{k}).(string(ageCats(j))),1)) ')'];
+                    mytitle = join(mytitle,'');
+                    title(strrep(mytitle,'_',' '))
+                end
+            end
         end
         function obj = emoFactorsDensity(obj)
             addpath('~/Documents/MATLAB/brewermap')
@@ -1062,6 +1138,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             end
         end
         function obj = emoVarsRegressionScatter(obj)
+            addpath('~/Documents/MATLAB/brewermap')
             fontSize = 12;
             emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);
             if strcmpi(obj.byGender,'Yes')
@@ -1078,22 +1155,41 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     genderLog = string(dataMF.Gender) == genderLabels{k};
                     ageGender{k} = age(genderLog);
                     emoGender{k} = emoData(genderLog,:);
+
+                    meanGender(k) = mean(emoGender{k}{:,:},[1 2]);
+                    stdGender(k) = std(emoGender{k}{:,:},[],[1 2]);
                     for j = 1:size(emoGender{k},2)
                         reg = regress(emoGender{k}{:,j},[ones(size(ageGender{k},1),1) ageGender{k}]);
+                        % note that only predictors are
+                        % standardized; we just want to mean center x
                         [corrR(j,k) corrP(j,k)] = corr(emoGender{k}{:,j}, ageGender{k});
-                        y(j,k) = reg(1);%intercept
+                        y(j,k) = mean(emoGender{k}{:,j});
+                        %y(j,k) = reg(1);%intercept
                         x(j,k) = reg(2);%slope
                     end
                 end
-                p = plot(x',y','k','Color',[.5 .5 .5])
+                for k = 1:numel(genderLabels)
+                    yl(k) = yline(meanGender(k),'--','Color',c(k+1,:));
+                    yl(k).Color(4) = .5;
+                    yl(k).Annotation.LegendInformation.IconDisplayStyle = 'off';
+                end
+                xl = xline(0,'Color',[.5,.5,.5]);
+                xl.Annotation.LegendInformation.IconDisplayStyle = 'off';
+                hold on
+                p = plot(x',y','k','Color',[.5 .5 .5]);
+                pax = axis;
                 for k = 1:numel(p)
                 p(k).Annotation.LegendInformation.IconDisplayStyle = 'off';
                 end
-                hold on
                 grid on
                 for k = 1:numel(genderLabels)
                     S = scatter(x(:,k),y(:,k));
-
+                    yreg = S.YData';
+                    xreg = S.XData';
+                    xregInt = [ones(length(xreg),1) xreg];
+                    b{k} = xregInt\yreg;
+                    %plot(xreg,xregInt*b{k},'LineWidth',2)
+                    anglsline(k) = rad2deg(atan(b{k}(2)));
                     S.MarkerFaceColor = c(k+1,:);
                     S.MarkerEdgeColor = c(k+1,:);
                 end
@@ -1106,6 +1202,54 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 text(mean(x,2),mean(y,2),emoLabels,'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize);
                 set(gca,'FontSize', fontSize)
                 l = legend(genderLabels);
+                l.AutoUpdate = 'off';
+                [rCorr pCorr] = corr(x,y);
+                rCorr = diag(rCorr);
+                pCorr = diag(pCorr);
+                df = num2str(numel(x)-2);
+                for k = 1:numel(rCorr)
+                    r = rCorr(k);
+                    p = pCorr(k);
+                    rtext{k} = ['r(' df ') = ' strrep(num2str(r,'%.2f'),'0.','.')];
+                    ptext{k} = ['p = ' strrep(num2str(p,'%.3f'),'0.','.')];
+                end
+                axis square
+                ax = axis;
+                for k = 1:numel(genderLabels)
+                    text(ax(2),meanGender(k),string(genderLabels(k))+' mean rating','Color',c(k+1,:));
+                end
+                %axis([-ax(2) ax(2) mean(meanGender)-mean(stdGender) mean(meanGender)+mean(stdGender)])
+                axis([-ax(2) ax(2) pax(3) pax(4)])
+                ax = axis;
+                lsl = lsline;
+                axis([-ax(2) ax(2) pax(3) pax(4)]);
+                %axis([-ax(2) ax(2) mean(meanGender)-mean(stdGender) mean(meanGender)+mean(stdGender)])
+                ax = axis;
+                    i = numel(genderLabels);
+                for k = 1:numel(genderLabels)
+                    l = lsl(i);
+                    xValueText =-.02;
+                    xValueText2 = -.01;
+                    yValueText = [1 xValueText]*b{k};
+                    yValueText2 = [1 xValueText2]*b{k};
+                    xO = xValueText2-xValueText;
+                    yO = yValueText2-yValueText;
+                    xONew = ax(2)-ax(1);
+                    yONew = ax(4)-ax(3);
+                    nXValue = xO*xONew;
+                    nYValue = yO*yONew;
+                    newAngle = atand(nYValue/nXValue);
+                    %axAng = atand((ax(4)-ax(3))/(ax(2)-ax(1)));
+                    %f = gcf;
+                    %pos = f.Position;
+                    %posAng = atand((pos(4)-pos(3))/(pos(2)-pos(1)));
+                    l.Color = [c(k+1,:) .25];
+                    t = text(xValueText,yValueText,{rtext{k};ptext{k}},'Color',c(k+1,:));
+
+                    t.Rotation = 0;
+                    %text(l.XData(2),l.YData(2),{rtext{k};ptext{k}},'FontSize',fontSize-2,'Color',c(k+1,:));
+                    i = i-1;
+                end
             else
                 emoData = obj.dataTable(:,obj.dataTableInd);
                 age = obj.dataTable.Age;
@@ -1129,7 +1273,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 text(l.XData(2),l.YData(2),{rtext;ptext},'FontSize',fontSize-2);
             end
             xlabel('Slope')
-            ylabel('Intercept')
+            ylabel('Mean')
             set(gca,'FontSize', fontSize)
         end
         function obj = emoVarsKerReg(obj)
