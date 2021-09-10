@@ -6,7 +6,7 @@ classdef factor_analysis < load_data.load_data
         rotateMethod = 'Varimax';
         emo
         emoLabels
-        showPlotsAndTextFA = 0;
+        showPlotsAndTextFA = 1;
         distanceM = 'euclidean';
         removeLeastRatedTerms = 1;
         removalPercentage = .1;
@@ -73,7 +73,7 @@ classdef factor_analysis < load_data.load_data
                      'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
             set(gca,'XTick',1:(height(t_m)),'XTickLabels',table2array(t_m(:,1)),'FontSize',12),xtickangle(90)
             xlabel('Emotions','FontSize',14),ylabel('Mean ratings','FontSize',14)
-            title('Means and standard deviations of emotion terms')
+            %title('Means and standard deviations of emotion terms')
             snapnow
             if obj.showPlotsAndTextFA == 1
                 disp(t_m);
@@ -128,9 +128,10 @@ classdef factor_analysis < load_data.load_data
                 disp(obj.sumSquaredLoadings)
                 %disp([': ' num2str(sum(obj.FAcoeff.^2))])
                 figure
-                heatmap(obj.FAcoeff)
-                ax = gca; ax.YDisplayLabels = num2cell(obj.emoLabels);
-                title('Factor Loadings')
+                y = sort_fa_loadings(obj);
+                heatmap(y{1})
+                ax = gca; ax.YDisplayLabels = num2cell(y{2});
+                %title('Factor Loadings')
                 snapnow
                % figure
                % bar(mean(obj.FAScores))
@@ -173,6 +174,7 @@ classdef factor_analysis < load_data.load_data
             end
             d = pdist(obj.emo',obj.distanceM);
             l = linkage(d,linkageMethod);
+            figure
             dendrogram(l,33,'orientation','right','labels',obj.emoLabels);
             title('Dendrogram of emotion ratings')
             snapnow
@@ -276,6 +278,21 @@ classdef factor_analysis < load_data.load_data
             if obj.showPlotsAndTextFA==1
                 disp(t_alpha);
             end
+        end
+        function y = sort_fa_loadings(obj)
+            thx = 0.40;
+             for i=1:size(obj.FAcoeff,2)-1
+                 [l,idx{i}] = sort(obj.FAcoeff(:,i),'descend');
+                 idx{i} = idx{i}(l>=thx);
+             end
+             [l,idx{i+1}] = sort(obj.FAcoeff(:,i+1),'descend');
+             idx{i+1} = idx{i+1};
+             idx = unique(cell2mat(idx(:)),'stable');
+             %otherEmo = [1:30]';
+             %otherEmo = setdiff(otherEmo,idx);
+             %idx = [idx',otherEmo'];
+             y{1} = obj.FAcoeff(idx',:);
+             y{2} = obj.emoLabels(idx');
         end
     end
     methods (Static)
