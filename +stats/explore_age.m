@@ -1464,10 +1464,6 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         %CI = uses the standard method
         % Kernel regression with constant bandwidth
 
-        % this should be done for each of the existing ages
-        % separately, maybe: for each age, do a datasample with
-        % replacement with the number
-        % of people that we have from that age.
             p1 = (100-p)/2;
             p2 = 100-(100-p)/2;
             ageRange = min(x):max(x);
