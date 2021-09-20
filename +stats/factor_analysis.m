@@ -71,7 +71,7 @@ classdef factor_analysis < load_data.load_data
             figure
             errorbar(table2array(t_m(:,2)),table2array(t_m(:,3))/2,'-s','markersize',7,...
                      'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
-            set(gca,'XTick',1:(height(t_m)),'XTickLabels',table2array(t_m(:,1)),'FontSize',12),xtickangle(90)
+            set(gca,'XTick',1:(height(t_m)),'XTickLabels',strrep(table2array(t_m(:,1)),'_',' '),'FontSize',12),xtickangle(90)
             xlabel('Emotions','FontSize',14),ylabel('Mean ratings','FontSize',14)
             %title('Means and standard deviations of emotion terms')
             snapnow
@@ -131,6 +131,7 @@ classdef factor_analysis < load_data.load_data
                 y = sort_fa_loadings(obj);
                 heatmap(y{1})
                 ax = gca; ax.YDisplayLabels = num2cell(y{2});
+                ax.YDisplayLabels = strrep(ax.YDisplayLabels,'_',' ');
                 %title('Factor Loadings')
                 snapnow
                % figure
@@ -175,7 +176,7 @@ classdef factor_analysis < load_data.load_data
             d = pdist(obj.emo',obj.distanceM);
             l = linkage(d,linkageMethod);
             figure
-            dendrogram(l,33,'orientation','right','labels',obj.emoLabels);
+            dendrogram(l,33,'orientation','right','labels',strrep(obj.emoLabels,'_',' '));
             title('Dendrogram of emotion ratings')
             snapnow
             %Cluster evaluation
