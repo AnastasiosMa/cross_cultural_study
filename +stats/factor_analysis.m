@@ -169,7 +169,7 @@ classdef factor_analysis < load_data.load_data
             linkageMethod = 'average';
             if obj.showPlotsAndTextFA == 1
                 disp('*** HIERARCHICAL CLUSTERING ***')
-                disp('Pairwises distances computed between EMOTION TERMS')
+                disp('Pairwises distances computed between variables')
                 disp(['Distance: ' obj.distanceM])
                 disp(['Linkage Method: ' linkageMethod])
             end
