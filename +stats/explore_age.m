@@ -1461,7 +1461,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         end
         function [CI,lower,upper] = confidenceLimits(x,y,p,k,sigma,bootCImethod)
         %[lower upper]: use the quantile method
-        %CI = uses the standard method
+        %CI = uses the standard method (normal approximation)
         % Kernel regression with constant bandwidth
 
             p1 = (100-p)/2;
