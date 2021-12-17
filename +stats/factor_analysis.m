@@ -71,7 +71,7 @@ classdef factor_analysis < load_data.load_data
             figure
             errorbar(table2array(t_m(:,2)),table2array(t_m(:,3))/2,'-s','markersize',7,...
                      'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
-            set(gca,'XTick',1:(height(t_m)),'XTickLabels',strrep(table2array(t_m(:,1)),'_',' '),'FontSize',12),xtickangle(90)
+            set(gca,'XTick',1:(height(t_m)),'XTickLabels',table2array(t_m(:,1)),'FontSize',12),xtickangle(90)
             xlabel('Emotions','FontSize',14),ylabel('Mean ratings','FontSize',14)
             %title('Means and standard deviations of emotion terms')
             snapnow
@@ -129,9 +129,18 @@ classdef factor_analysis < load_data.load_data
                 %disp([': ' num2str(sum(obj.FAcoeff.^2))])
                 figure
                 y = sort_fa_loadings(obj);
-                heatmap(y{1})
-                ax = gca; ax.YDisplayLabels = num2cell(y{2});
-                ax.YDisplayLabels = strrep(ax.YDisplayLabels,'_',' ');
+                y{1} = round(y{1},2);
+                factorMedians = round(nanmedian(obj.FAScores),2);
+                h = heatmap([y{1}; factorMedians])
+                h.CellLabelFormat = '%.2f';
+                h.FontSize = 14;
+                ay = gca; ay.YDisplayLabels = num2cell([y{2} {'Median Factor Scores'}]);
+                factorNumbering = {['       Factor 1\newline'],...
+                    ['         Factor 2\newline'],['     Factor 3\newline']};
+                fNames = strcat(factorNumbering,obj.factorNames);
+                %XlabelArray = [factorNumbering;obj.factorNames];
+                %XtickLabels = strtrim(sprintf('%s\\newline%s\n', XlabelArray{:}));
+                ax = gca; ax.XDisplayLabels = (fNames);
                 %title('Factor Loadings')
                 snapnow
                % figure
@@ -169,14 +178,14 @@ classdef factor_analysis < load_data.load_data
             linkageMethod = 'average';
             if obj.showPlotsAndTextFA == 1
                 disp('*** HIERARCHICAL CLUSTERING ***')
-                disp('Pairwises distances computed between variables')
+                disp('Pairwises distances computed between EMOTION TERMS')
                 disp(['Distance: ' obj.distanceM])
                 disp(['Linkage Method: ' linkageMethod])
             end
             d = pdist(obj.emo',obj.distanceM);
             l = linkage(d,linkageMethod);
             figure
-            dendrogram(l,33,'orientation','right','labels',strrep(obj.emoLabels,'_',' '));
+            dendrogram(l,33,'orientation','right','labels',obj.emoLabels);
             title('Dendrogram of emotion ratings')
             snapnow
             %Cluster evaluation
