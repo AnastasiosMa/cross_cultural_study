@@ -290,7 +290,6 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             end
         end
         function obj = emoFactorsBoxplotsGender(obj)
-            close all
             addpath('~/Documents/MATLAB/distinguishable_colors')
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
@@ -298,6 +297,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
+            %close all
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
 
@@ -309,26 +309,34 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             tl.Padding = 'None';
             obj.dataTable(matches(obj.dataTable.Gender,'Other'),:) = [];
             for k = 1:size(emoData,2)
+                disp(emoLabels{k})
                 ax{k} = nexttile;
                 obj.dataTable.(emoLabels{k});
                 b = boxchart(obj.dataTable.(emoLabels{k}),'groupbyColor',obj.dataTable.Gender,'Notch','on');
                 b(1).SeriesIndex = 2;
                 b(2).SeriesIndex = 1;
                 xlabel(emoLabels{k});
-                if k > 1
-                yticks('')
+                if k == 1
+                    ylabel('Factor score')
+                    lgd = legend;
+                    lgd.String = unique(obj.dataTable.Gender);
+                    lgd.Layout.Tile = 'north';
+                    lgd.Orientation = 'horizontal';
+                    ax{k}.TickDir = 'out';
+                    set(lgd,'AutoUpdate','off')
+                else
+                    yticks('')
                 end
                 xticks('')
                 [~, ttestp, ~, tteststats] = ttest2(obj.dataTable.(emoLabels{k})(string(obj.dataTable.Gender) == 'Female'),obj.dataTable.(emoLabels{k})(string(obj.dataTable.Gender) == 'Male'));
-                mytitle=['t(' num2str(tteststats.df) ') = ' num2str(tteststats.tstat,'%.2f') ', p = ' strrep(num2str(ttestp,'%.3f'),'0.','.')];
-                title(mytitle);
+                disp(['t(' num2str(tteststats.df) ') = ' num2str(tteststats.tstat,'%.2f') ', p = ' strrep(num2str(ttestp,'%.3f'),'0.','.')]);
                 hold on
                 G = groupsummary(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.Gender),'mean');
-                plot([0.75; 1.25],G,'xk')
+                plot([0.75; 1.25],G,'dk')
                 axis square
             end
             linkaxes([ax{:}],'y')
-            savefigures('figures/emoFactorsBoxplotsGender/')
+            %savefigures('figures/paper_emotions_listening_habits/Gender_EmoFactors_barplots')
         end
         function obj = emoFactorsBoxplotsGender_old(obj)
             close all
@@ -368,8 +376,13 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             linkaxes([ax{:}],'y')
             savefigures('figures/emoFactorsBoxplotsGender/')
         end
-        function obj = emoFactorsBarplots(obj)
-            byGender = 'Yes';
+        function obj = emoFactorsBarplots(obj,options)
+            arguments
+                obj
+                options.minimalXTickLabel = 'yes' % if minimal, then only age groups are shown. Otherwise, we also add sample sizes for each gender
+                options.byGender = 'yes'
+            end
+            byGender = options.byGender;
             addpath('~/Documents/MATLAB/distinguishable_colors')
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
@@ -380,14 +393,16 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             obj.dataTable.AgeCategory = renamecats(obj.dataTable.AgeCategory,{'Under 20','Over 60'},{'<20','60+'});
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
-            fh = figure();
-            fh.WindowState = 'maximized';
+            %close all
+            g = get(groot,'defaultfigureposition');
+            g(3) = g(3)*2;
+            f = figure('Position',g);
+            %fh.WindowState = 'maximized';
             S = size(emoData,2);
             su = stats.explore_age.numSubplots(S);
             tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
-            tl.TileSpacing = 'Compact';
-            tl.Padding = 'None';
             for k = 1:size(emoData,2)
+                disp(emoLabels{k})
                 ax{k} = nexttile;
                 if strcmpi(byGender,'No')
                     G = groupsummary(obj.dataTable,"AgeCategory","Mean",emoLabels{k});
@@ -438,11 +453,10 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
                     genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
                     ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
-                    title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
+                    disp({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
                     %title(join(['Age ' ageAN '; Gender ' genderAN],''))
                 end
-                ylabel(emoLabels{k})
-                grid on
+                title(emoLabels{k})
                 %xlabel('Age group')
                 curMinCI = min(meanData-ci(1,:)');
                 curMaxCI = max(meanData+ci(1,:)');
@@ -465,12 +479,32 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 lgd.Layout.Tile = 'north';
                 lgd.Orientation = 'horizontal';
             end
+            linkaxes([ax{:}],'y');
+
+            for k = 1:numel(ax)
+                ax{k}.TickDir='out';
+                ax{k}.Box = 'off';
+                ax{k}.FontSize = 16;
+                if strcmpi(options.minimalXTickLabel, 'yes')
+                    ax{k}.XTick = mean(reshape(ax{k}.XTick,2,[]))
+                    ax{k}.XTickLabel=string(groupsummary(obj.dataTable,"AgeCategory").AgeCategory);
+                end
+                ax{k}.XLabel.String = 'Age group';
+                if k == 1
+                    ax{k}.YLabel.String='Factor score';
+                else
+                    ax{k}.YTick = [];
+                end
+            end
+            tl.TileSpacing = 'Tight';
+            tl.Padding = 'Compact';
+            %savefigures('figures/paper_emotions_listening_habits/AgeGroup_EmoFactors_barplots')
         end
         function obj = emoVarsDensity(obj)
             byGender = obj.byGender;
             bootCImethod = obj.bootCImethod;
             sigma = 5;
-            iter = 100;
+            iter = 10000;
             warning('check number of iterations')
             addpath('~/Documents/MATLAB/distinguishable_colors')
             emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);
@@ -695,12 +729,18 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 end
             end
         end
-        function obj = emoFactorsDensity(obj)
+        function obj = emoFactorsDensity(obj,options)
+            arguments
+                obj
+                options.sigma = 5
+                options.iter = 10000
+            end
+            close all
             addpath('~/Documents/MATLAB/brewermap')
             byGender = obj.byGender;
             bootCImethod = obj.bootCImethod;
-            sigma = 5;
-            iter = 100;
+            sigma = options.sigma;
+            iter = options.iter;
             warning('check number of iterations for confidence interval')
             addpath('~/Documents/MATLAB/distinguishable_colors')
             emo = do_factor_analysis(obj);
@@ -716,9 +756,8 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             S = size(emoData,2);
             su = stats.explore_age.numSubplots(S);
             tl = tiledlayout(su(1),su(2),'TileSpacing','loose','Padding','loose');
-            tl.TileSpacing = 'Compact';
-            tl.Padding = 'None';
             for k = 1:size(emoData,2)
+                disp(emoLabels{k})
                 ax{k} = nexttile;
                 if strcmpi(byGender,'No')
                     ageRange = min(obj.dataTable.Age):max(obj.dataTable.Age);
@@ -762,7 +801,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     axis tight
                     xlabel('Age')
                     [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
-                    title("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')))
+                    disp("F("+string(T(2,3))+","+string(T(3,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.')))
                 else
                     dataMF = obj.dataTable;
                     dataMF(matches(dataMF.Gender,'Other'),:) = [];
@@ -814,13 +853,13 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                             ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
                             genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
                             ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
-                            title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
+                            disp({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
                             %title(join(['Age ' ageAN '; Gender ' genderAN],''))
                         end
                     end
                 end
-                ylabel(emoLabels{k})
-                grid on
+                title(emoLabels{k})
+                %grid on
                 %xlabel('Age group')
                 if strcmpi(byGender,'Yes')
                     curMinCI = min(cellfun(@min,smallL));
@@ -852,7 +891,17 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             [S I] = sort(betasmallAgeRange,'descend');
             for k = 1:numel(ax)
                 ax{I(k)}.Layout.Tile = k;
+                ax{I(k)}.TickDir='out'
+                ax{I(k)}.Box = 'off'
+                if k == 1
+                    ax{I(k)}.YLabel.String='Factor score';
+                else
+                    ax{I(k)}.YTick = [];
+                end
             end
+            tl.TileSpacing = 'Tight';
+            tl.Padding = 'Compact';
+            savefigures('figures/paper_emotions_listening_habits/Age_EmoFactors_kRegression')
         end
         function scatterRegMean(obj)
             emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);
