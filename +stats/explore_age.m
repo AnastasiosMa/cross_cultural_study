@@ -330,10 +330,15 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 xticks('')
                 [~, ttestp, ~, tteststats] = ttest2(obj.dataTable.(emoLabels{k})(string(obj.dataTable.Gender) == 'Female'),obj.dataTable.(emoLabels{k})(string(obj.dataTable.Gender) == 'Male'));
                 disp(['t(' num2str(tteststats.df) ') = ' num2str(tteststats.tstat,'%.2f') ', p = ' strrep(num2str(ttestp,'%.3f'),'0.','.')]);
+                if ttestp < .05
+                    %sigstar([1,2],ttestp) -> doesn't do the trick
+                end
+                keyboard
                 hold on
                 G = groupsummary(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.Gender),'mean');
                 plot([0.75; 1.25],G,'dk')
                 axis square
+
             end
             linkaxes([ax{:}],'y')
             %savefigures('figures/paper_emotions_listening_habits/Gender_EmoFactors_barplots')
