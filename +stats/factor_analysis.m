@@ -71,7 +71,7 @@ classdef factor_analysis < load_data.load_data
             figure
             errorbar(table2array(t_m(:,2)),table2array(t_m(:,3))/2,'-s','markersize',7,...
                      'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
-            set(gca,'XTick',1:(height(t_m)),'XTickLabels',table2array(t_m(:,1)),'FontSize',12),xtickangle(90)
+            set(gca,'XTick',1:(height(t_m)),'XTickLabels',strrep(table2array(t_m(:,1)),'_',' '),'FontSize',12),xtickangle(90)
             xlabel('Emotions','FontSize',14),ylabel('Mean ratings','FontSize',14)
             %title('Means and standard deviations of emotion terms')
             snapnow
@@ -135,6 +135,7 @@ classdef factor_analysis < load_data.load_data
                 h.CellLabelFormat = '%.2f';
                 h.FontSize = 14;
                 ay = gca; ay.YDisplayLabels = num2cell([y{2} {'Median Factor Scores'}]);
+                ax.YDisplayLabels = strrep(ax.YDisplayLabels,'_',' ');
                 factorNumbering = {['       Factor 1\newline'],...
                     ['         Factor 2\newline'],['     Factor 3\newline']};
                 fNames = strcat(factorNumbering,obj.factorNames);
@@ -178,14 +179,14 @@ classdef factor_analysis < load_data.load_data
             linkageMethod = 'average';
             if obj.showPlotsAndTextFA == 1
                 disp('*** HIERARCHICAL CLUSTERING ***')
-                disp('Pairwises distances computed between EMOTION TERMS')
+                disp('Pairwises distances computed between variables')
                 disp(['Distance: ' obj.distanceM])
                 disp(['Linkage Method: ' linkageMethod])
             end
             d = pdist(obj.emo',obj.distanceM);
             l = linkage(d,linkageMethod);
             figure
-            dendrogram(l,33,'orientation','right','labels',obj.emoLabels);
+            dendrogram(l,33,'orientation','right','labels',strrep(obj.emoLabels,'_',' '));
             title('Dendrogram of emotion ratings')
             snapnow
             %Cluster evaluation
