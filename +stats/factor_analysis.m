@@ -134,8 +134,7 @@ classdef factor_analysis < load_data.load_data
                 h = heatmap([y{1}; factorMedians])
                 h.CellLabelFormat = '%.2f';
                 h.FontSize = 14;
-                ay = gca; ay.YDisplayLabels = num2cell([y{2} {'Median Factor Scores'}]);
-                ax.YDisplayLabels = strrep(ax.YDisplayLabels,'_',' ');
+                ay = gca; ay.YDisplayLabels = num2cell([strrep(y{2},'_',' ') {'Median Factor Scores'}]);
                 factorNumbering = {['       Factor 1\newline'],...
                     ['         Factor 2\newline'],['     Factor 3\newline']};
                 fNames = strcat(factorNumbering,obj.factorNames);
