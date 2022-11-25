@@ -1,21 +1,22 @@
 classdef explore_age < load_data.load_data & stats.factor_analysis
-%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj=reasonsAge(obj);
-%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj)
-%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj);indColAgeDensity(obj)
-%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoFactorsDensity(obj)
-%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoVarsRegressionScatter(obj)
-%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);factorSolutionAgeGenderReplications(obj)
-%obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoVarsRegressionScatter(obj)
+    %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);obj=reasonsAge(obj);
+    %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj)
+    %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);ageDensity(obj),emoVarsAgeDensity(obj),emoAgeDensity(obj),icVarsAgeDensity(obj);indColAgeDensity(obj)
+    %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoFactorsDensity(obj)
+    %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoVarsRegressionScatter(obj)
+    %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);factorSolutionAgeGenderReplications(obj)
+    %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoVarsRegressionScatter(obj)
+    %obj = stats.explore_age();obj.filterMethod='UnbalancedSubgroups';obj=do_load_data(obj);ttestCountryGender(obj)
     properties
         FactorNames
         countryType = 'Country_childhood';
         reasonLabels = {'for background purposes'
-                        'to bring up memories'
-                        'to have fun'
-                        'to feel music´s emotions'
-                        'to change your mood'
-                        'to express yourself'
-                        'to feel connected to other people'};
+            'to bring up memories'
+            'to have fun'
+            'to feel music´s emotions'
+            'to change your mood'
+            'to express yourself'
+            'to feel connected to other people'};
         reasonTypes = {'General Behavior','Selected Track'};
         scatterPlotData
         byGender = 'Yes';
@@ -30,7 +31,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             icData = obj.dataTable(:,matches(obj.dataTable.Properties.VariableNames,obj.ICscalesNames));
             %icData{:,:} = rescale(icData{:,:}')';
             for k = 1:numel(obj.ICscalesNames)
-            [f(:,k),xi(:,k)] = ksdensity(obj.dataTable.Age,'Weights',icData{:,k});
+                [f(:,k),xi(:,k)] = ksdensity(obj.dataTable.Age,'Weights',icData{:,k});
             end
             plot(xi,f,'LineWidth',2)
             %area(xi,f./sum(f,2))
@@ -68,15 +69,15 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     l.Layout.Tile = 'north'
                     l.PlotChildren = wrev(l.PlotChildren);
                 end
-            hold on
-            stem(obj.dataTable.Age,zeros(size(obj.dataTable.Age))+.001,'k')
-            title(strrep(reasonTypesKey{j},'_',''))
+                hold on
+                stem(obj.dataTable.Age,zeros(size(obj.dataTable.Age))+.001,'k')
+                title(strrep(reasonTypesKey{j},'_',''))
             end
             sgtitle('Kernel density for age, weighted by reasons for listening')
             xlim([17 87])
         end
         function ageDensity(obj)
-        %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
+            %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
             figure
             clear f xi
             [f,xi] = ksdensity(obj.dataTable.Age);
@@ -163,7 +164,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
-
+            
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             figure
             emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
@@ -179,14 +180,14 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             ColVars = obj.icVars(numel(obj.icVars)/2+1:end);
             ColVarsInd = find(matches(obj.dataTable.Properties.VariableNames, ColVars));
             ColLabels = obj.dataTable.Properties.VariableNames(ColVarsInd);
-
+            
             colData = obj.dataTable(:,ColVarsInd);
             T = [colData obj.dataTable(:,'Age')];
-
+            
             gprMdl = fitrgp(T,'Age','Basis','linear', 'FitMethod','exact','PredictMethod','exact');
             ypred = resubPredict(gprMdl);
-
-
+            
+            
             figure();
             plot(T.Age,'r.');
             hold on
@@ -203,7 +204,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             obj.dataTable.AgeCategory = renamecats(obj.dataTable.AgeCategory,{'Under 20','Over 60'},{'<20','60+'});
             fh = figure();
             fh.WindowState = 'maximized';
-
+            
             emoData = obj.dataTable(:,obj.dataTableInd);
             S = size(emoData,2);
             su = stats.explore_age.numSubplots(S);
@@ -270,8 +271,8 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 curMinCI = min(meanData-ci(1,:)');
                 curMaxCI = max(meanData+ci(1,:)');
                 if k > 1
-                   minCI = min(minCI,curMinCI);
-                   maxCI = max(maxCI,curMaxCI);
+                    minCI = min(minCI,curMinCI);
+                    maxCI = max(maxCI,curMaxCI);
                 else
                     [minCI, maxCI] = deal(curMinCI,curMaxCI);
                 end
@@ -281,7 +282,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 extra = diff(ax{k}.YLim) * 10/100;
                 ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
             end
-
+            
             if strcmpi(byGender,'Yes')
                 lgd = legend;
                 lgd.String = unique(dataMF.Gender);
@@ -300,7 +301,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             %close all
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
-
+            
             S = size(emoData,2);
             fh = figure();
             su = stats.explore_age.numSubplots(S);
@@ -338,7 +339,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 G = groupsummary(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.Gender),'mean');
                 plot([0.75; 1.25],G,'dk')
                 axis square
-
+                
             end
             linkaxes([ax{:}],'y')
             %savefigures('figures/paper_emotions_listening_habits/Gender_EmoFactors_barplots')
@@ -354,7 +355,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             end
             obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
             emoData = obj.dataTable(:,contains(obj.dataTable.Properties.VariableNames,obj.FactorNames));
-
+            
             S = size(emoData,2);
             fh = figure();
             su = stats.explore_age.numSubplots(S);
@@ -466,8 +467,8 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 curMinCI = min(meanData-ci(1,:)');
                 curMaxCI = max(meanData+ci(1,:)');
                 if k > 1
-                   minCI = min(minCI,curMinCI);
-                   maxCI = max(maxCI,curMaxCI);
+                    minCI = min(minCI,curMinCI);
+                    maxCI = max(maxCI,curMaxCI);
                 else
                     [minCI, maxCI] = deal(curMinCI,curMaxCI);
                 end
@@ -477,7 +478,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 %extra = diff(ax{k}.YLim) * 10/100;
                 %ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
             end
-
+            
             if strcmpi(byGender,'Yes')
                 lgd = legend;
                 lgd.String = unique(dataMF.Gender);
@@ -485,7 +486,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 lgd.Orientation = 'horizontal';
             end
             linkaxes([ax{:}],'y');
-
+            
             for k = 1:numel(ax)
                 ax{k}.TickDir='out';
                 ax{k}.Box = 'off';
@@ -533,7 +534,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     z2=sum(normpdf(ageRange-obj.dataTable.Age,0,sigma));
                     z=z1./z2;
                     if strcmpi(bootCImethod,'standard')
-                    CI = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
+                        CI = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
                         l = z-CI;
                         u = z+CI;
                         l = l(:);
@@ -541,8 +542,8 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     else
                         [~,l,u] = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
                     end
-
-
+                    
+                    
                     c = brewermap(1,'Set2');
                     set(fh,'defaultLegendAutoUpdate','off');
                     for ii = 1:size(l,2)
@@ -560,9 +561,9 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     smallU = u(ageRange >= percXlim(1) & ageRange <= percXlim(2));
                     regsmallAgeRange = regress(smallZ',[ones(size(smallAgeRange,2),1) smallAgeRange']);
                     betasmallAgeRange(k) = regsmallAgeRange(2);
-
+                    
                     reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
-
+                    
                     axis tight
                     xlabel('Age')
                     [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
@@ -584,13 +585,13 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                         z2=sum(normpdf(ageRange-data.Age,0,sigma));
                         z=z1./z2;
                         if strcmpi(bootCImethod,'standard')
-                        CI = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend{:,k},95,iter,sigma,bootCImethod);
-                        l = z-CI;
-                        u = z+CI;
-                        l = l(:);
-                        u = u(:);
+                            CI = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend{:,k},95,iter,sigma,bootCImethod);
+                            l = z-CI;
+                            u = z+CI;
+                            l = l(:);
+                            u = u(:);
                         else
-                        [~,l,u] = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend{:,k},95,iter,sigma,bootCImethod);
+                            [~,l,u] = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend{:,k},95,iter,sigma,bootCImethod);
                         end
                         set(fh,'defaultLegendAutoUpdate','off');
                         for ii = 1:size(l,2)
@@ -599,7 +600,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                         end
                         p = plot(ageRange,z,'-k','LineWidth',2);
                         p.Annotation.LegendInformation.IconDisplayStyle = 'off';
-
+                        
                         reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
                         percXlim = prctile(data.Age,[5 95]);
                         smallAgeRange = ageRange(ageRange >= percXlim(1) & ageRange <= percXlim(2));
@@ -622,15 +623,15 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                         end
                     end
                 end
-                    ylabel(emoLabels{k})
-                    grid on
-                    %xlabel('Age group')
+                ylabel(emoLabels{k})
+                grid on
+                %xlabel('Age group')
                 if strcmpi(byGender,'Yes')
-                curMinCI = min(cellfun(@min,smallL));
-                curMaxCI = max(cellfun(@max,smallU));
+                    curMinCI = min(cellfun(@min,smallL));
+                    curMaxCI = max(cellfun(@max,smallU));
                 else
-                curMinCI = min(smallL);
-                curMaxCI = max(smallU);
+                    curMinCI = min(smallL);
+                    curMaxCI = max(smallU);
                 end
                 if k > 1
                     minCI = min(minCI,curMinCI);
@@ -645,7 +646,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 %extra = diff(ax{k}.YLim) * 1/100;
                 %ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
             end
-
+            
             if strcmpi(byGender,'Yes')
                 lgd = legend;
                 lgd.String = unique(dataMF.Gender);
@@ -676,7 +677,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     data.(genderCats{k}).(ageCats{j}) = data.(genderCats{k}).allData(matches(data.(genderCats{k}).allData.AgeCategory,ageCats{j}),:);
                     a = obj;
                     a.dataTable = data.(genderCats{k}).(ageCats{j});
-
+                    
                     f = do_factor_analysis(a);
                     disp('')
                     disp([genderCats{k} ' ' ageCats{j}])
@@ -689,15 +690,15 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     dataFA.(genderCats{k}).(ageCats{j}) = f;
                 end
             end
-
-
+            
+            
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
             emoLabels = obj.FactorNames;
             for k = 1:size(emo.FAScores,2)
                 FAs{k} = emo.FAScores(:,k);
             end
-
+            
         end
         function obj = MeanEmotionRatingsAgeGender(obj)
             addpath('~/Documents/MATLAB/brewermap')
@@ -773,7 +774,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     z1=sum(emoData{:,k}.*normpdf(ageRange-obj.dataTable.Age,0,sigma));
                     z2=sum(normpdf(ageRange-obj.dataTable.Age,0,sigma));
                     z=z1./z2;
-
+                    
                     if strcmpi(bootCImethod,'standard')
                         CI = stats.explore_age.confidenceLimits(obj.dataTable.Age,emoData{:,k},95,iter,sigma,bootCImethod);
                         l = z-CI;
@@ -800,9 +801,9 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     smallU = u(ageRange >= percXlim(1) & ageRange <= percXlim(2));
                     regsmallAgeRange = regress(smallZ',[ones(size(smallAgeRange,2),1) smallAgeRange']);
                     betasmallAgeRange(k) = regsmallAgeRange(2);
-
+                    
                     reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
-
+                    
                     axis tight
                     xlabel('Age')
                     [~,T] = anovan(obj.dataTable.(emoLabels{k}),findgroups(obj.dataTable.AgeCategory),'Display','off');
@@ -823,7 +824,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                         z1=sum(emoDataCurGend.*normpdf(ageRange-data.Age,0,sigma));
                         z2=sum(normpdf(ageRange-data.Age,0,sigma));
                         z=z1./z2;
-
+                        
                         if strcmpi(bootCImethod,'standard')
                             CI = stats.explore_age.confidenceLimits(data.Age,emoDataCurGend,95,iter,sigma,bootCImethod);
                             l = z-CI;
@@ -840,7 +841,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                         end
                         p = plot(ageRange,z,'-k','LineWidth',2);
                         p.Annotation.LegendInformation.IconDisplayStyle = 'off';
-
+                        
                         reg = regress(z',[ones(size(ageRange,2),1) ageRange']);
                         percXlim = prctile(data.Age,[5 95]);
                         smallAgeRange = ageRange(ageRange >= percXlim(1) & ageRange <= percXlim(2));
@@ -886,7 +887,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 %extra = diff(ax{k}.YLim) * 1/100;
                 %ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
             end
-
+            
             if strcmpi(byGender,'Yes')
                 lgd = legend;
                 lgd.String = unique(dataMF.Gender);
@@ -906,7 +907,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             end
             tl.TileSpacing = 'Tight';
             tl.Padding = 'Compact';
-            savefigures('figures/paper_emotions_listening_habits/Age_EmoFactors_kRegression')
+            %savefigures('figures/paper_emotions_listening_habits/Age_EmoFactors_kRegression')
         end
         function scatterRegMean(obj)
             emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);
@@ -925,7 +926,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             grid on
         end
         function reasonsVarsBarplots(obj)
-        % crashes for very long names
+            % crashes for very long names
             byGenderOpts = {'No','Yes'};
             for kk = 1:numel(byGenderOpts)
                 if kk == 1
@@ -947,10 +948,10 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     fh.WindowState = 'maximized';
                     reasonTypesKey = {'Music_','Track_'};
                     switch lower(track)
-                      case 'no'
-                        flag = 1;
-                      case 'yes'
-                        flag = 2;
+                        case 'no'
+                            flag = 1;
+                        case 'yes'
+                            flag = 2;
                     end
                     REASONData = mydata(:,contains(mydata.Properties.VariableNames,reasonTypesKey{flag}));
                     myTitle = obj.reasonTypes{flag};
@@ -1012,14 +1013,14 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                             xticklabels(str)
                             xtickangle(45)
                             [~,T] = anovan(mydata.(REASONLabels{k}),{findgroups(mydata.AgeCategory),findgroups(mydata.Gender)},'Display','off','model','interaction');
-                    ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
-                    genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
-                    ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
-                    title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
-                    % ageAN = "F("+string(T(2,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
-                    % genderAN = "F("+string(T(3,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
-                    % title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'')})
-                    %title(join(['Age ' ageAN '; Gender ' genderAN],''))
+                            ageAN = "F("+string(T(2,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                            genderAN = "F("+string(T(3,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                            ageGenderAN = "F("+string(T(4,3))+","+string(T(5,3))+") = " + num2str(str2num(string(T(4,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(4,end)),'%.3f'),'0.','.'));
+                            title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'');join(['Interaction ' ageGenderAN ],'')})
+                            % ageAN = "F("+string(T(2,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
+                            % genderAN = "F("+string(T(3,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
+                            % title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'')})
+                            %title(join(['Age ' ageAN '; Gender ' genderAN],''))
                         end
                         ylabel(strrep(obj.reasonLabels{k},'_',' '))
                         grid on
@@ -1038,7 +1039,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                         extra = diff(ax{k}.YLim) * 10/100;
                         ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
                     end
-
+                    
                     if strcmpi(byGender,'Yes')
                         lgd = legend;
                         lgd.String = unique(dataMF.Gender);
@@ -1050,7 +1051,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             end
         end
         function icVarsBarplots(obj)
-        % crashes for very long names
+            % crashes for very long names
             byGender = 'No';
             addpath('~/Documents/MATLAB/distinguishable_colors')
             % shorter versions of obj.icVars
@@ -1113,7 +1114,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     xticks(reshape(cell2mat(x'),[],1))
                     xticklabels(str)
                     [~,T] = anovan(obj.dataTable.(ICLabels{k}),{findgroups(obj.dataTable.AgeCategory),findgroups(obj.dataTable.Gender)},'Display','off');
-
+                    
                     ageAN = "F("+string(T(2,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(2,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(2,end)),'%.3f'),'0.','.'));
                     genderAN = "F("+string(T(3,3))+","+string(T(4,3))+") = " + num2str(str2num(string(T(3,end-1))),'%.2f')+", p = " + string(strrep(num2str(cell2mat(T(3,end)),'%.3f'),'0.','.'));
                     title({join(['Age ' ageAN ],'');join(['Gender ' genderAN ],'')})
@@ -1125,8 +1126,8 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 curMinCI = min(meanData-ci(1,:)');
                 curMaxCI = max(meanData+ci(1,:)');
                 if k > 1
-                   minCI = min(minCI,curMinCI);
-                   maxCI = max(maxCI,curMaxCI);
+                    minCI = min(minCI,curMinCI);
+                    maxCI = max(maxCI,curMaxCI);
                 else
                     [minCI, maxCI] = deal(curMinCI,curMaxCI);
                 end
@@ -1136,7 +1137,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 extra = diff(ax{k}.YLim) * 10/100;
                 ax{k}.YLim = [ax{k}.YLim(1) - extra, ax{k}.YLim(2) + extra];
             end
-
+            
             if strcmpi(byGender,'Yes')
                 lgd = legend;
                 lgd.String = unique(dataMF.Gender);
@@ -1178,7 +1179,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     str = join([string(groupsummary(obj.dataTable,"AgeCategory").AgeCategory) + " (N=" groupsummary(obj.dataTable,"AgeCategory").GroupCount + ")"],'');
                 else
                     str = join([string(groupsummary(obj.dataTable,"Age").Age) + " (N=" groupsummary(obj.dataTable,"Age").GroupCount + ")"],'');
-
+                    
                     xlabel('Age (years)')
                     [minAge maxAge] = bounds(groupsummary(obj.dataTable,"Age").Age);
                     xticks([minAge:maxAge])
@@ -1202,14 +1203,14 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 emoData = dataMF(:,obj.dataTableInd);
                 age = dataMF.Age;
                 c = brewermap(numel(genderLabels)+1,'Set2');
-            g = get(groot,'defaultfigureposition');
-            g(3:4) = g(3:4)*2;
-            figure('Position',g)
+                g = get(groot,'defaultfigureposition');
+                g(3:4) = g(3:4)*2;
+                figure('Position',g)
                 for k = 1:numel(genderLabels)
                     genderLog = string(dataMF.Gender) == genderLabels{k};
                     ageGender{k} = age(genderLog);
                     emoGender{k} = emoData(genderLog,:);
-
+                    
                     meanGender(k) = mean(emoGender{k}{:,:},[1 2]);
                     stdGender(k) = std(emoGender{k}{:,:},[],[1 2]);
                     for j = 1:size(emoGender{k},2)
@@ -1233,7 +1234,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 p = plot(x',y','k','Color',[.5 .5 .5]);
                 pax = axis;
                 for k = 1:numel(p)
-                p(k).Annotation.LegendInformation.IconDisplayStyle = 'off';
+                    p(k).Annotation.LegendInformation.IconDisplayStyle = 'off';
                 end
                 grid on
                 for k = 1:numel(genderLabels)
@@ -1250,9 +1251,9 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 rText = arrayfun(@(x) strrep(num2str(x,'%.2f'),'0.','.'),corrR,'un',0);
                 pStarsText = stats.correlate_reasons.makestars(corrP);
                 corrsText = string(rText) + string(pStarsText);
-
+                
                 %text(x(:),y(:),corrsText(:),'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize-3);
-
+                
                 text(mean(x,2),mean(y,2),emoLabels,'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize);
                 set(gca,'FontSize', fontSize)
                 l = legend(genderLabels);
@@ -1279,7 +1280,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 axis([-ax(2) ax(2) pax(3) pax(4)]);
                 %axis([-ax(2) ax(2) mean(meanGender)-mean(stdGender) mean(meanGender)+mean(stdGender)])
                 ax = axis;
-                    i = numel(genderLabels);
+                i = numel(genderLabels);
                 for k = 1:numel(genderLabels)
                     l = lsl(i);
                     xValueText =-.02;
@@ -1299,7 +1300,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     %posAng = atand((pos(4)-pos(3))/(pos(2)-pos(1)));
                     l.Color = [c(k+1,:) .25];
                     t = text(xValueText,yValueText,{rtext{k};ptext{k}},'Color',c(k+1,:));
-
+                    
                     t.Rotation = 0;
                     %text(l.XData(2),l.YData(2),{rtext{k};ptext{k}},'FontSize',fontSize-2,'Color',c(k+1,:));
                     i = i-1;
@@ -1316,7 +1317,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 scatter(x,y)
                 hold on
                 grid on
-
+                
                 text(x,y,emoLabels,'Verticalalignment','top','HorizontalAlignment','Center','FontSize',fontSize)
                 grid on
                 [r p] = corr(x',y');
@@ -1344,7 +1345,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 emoData{:,k} = (emoData{:,k}-mean(emoData{:,k}));
                 r(k) = ksr_vw(obj.dataTable.Age,emoData{:,k},300);
                 %ksr_vw
-
+                
             end
             %xi = wrev(xi);
             %f = wrev(f);
@@ -1367,20 +1368,20 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             xlabel('Age')
             ylabel('Feature value')
         end
-
+        
         function obj = emoCollectGausKerReg(obj)
-        % collectivism variables
+            % collectivism variables
             icVars = obj.icVars(numel(obj.icVars)/2+1:end);
             icVarsInd = find(matches(obj.dataTable.Properties.VariableNames, icVars));
             icLabels = obj.dataTable.Properties.VariableNames(icVarsInd);
-
+            
             icData = obj.dataTable{:,icVarsInd};
             X = icData;
             Y = obj.dataTable.Age;
             R = rmmissing([X Y]);
             X = R(:,1:end-1);
             Y = R(:,end);
-
+            
             N = length(Y);
             cvp = cvpartition(N,'Holdout',0.1);
             idxTrn = training(cvp); % Training set indices
@@ -1399,7 +1400,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
         end
         function obj = emoAgeDensity(obj)
             addpath('~/Documents/MATLAB/brewermap')
-        %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
+            %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
@@ -1434,7 +1435,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             ylabel('Density')
         end
         function obj = emoAge(obj)
-        %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
+            %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
@@ -1453,14 +1454,14 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 set(f,'defaultLegendAutoUpdate','off');
                 f = fill([x' fliplr(x')],[dataM-dataSD, fliplr(dataM)+fliplr(dataSD)],c(k,:),'LineStyle','none','FaceAlpha',.3);
                 f.Annotation.LegendInformation.IconDisplayStyle = 'off'; % make the legend for step plot off
-            hold on
-            h = plot(x,dataM,'LineWidth',2,'Color',c(k,:));
-            l = legend(strrep(obj.FactorNames,'_',' '),'Location','NorthOutside','AutoUpdate','off');
-            xlim([17 87])
+                hold on
+                h = plot(x,dataM,'LineWidth',2,'Color',c(k,:));
+                l = legend(strrep(obj.FactorNames,'_',' '),'Location','NorthOutside','AutoUpdate','off');
+                xlim([17 87])
             end
         end
         function obj = emoAgePositiveRate(obj)
-        %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
+            %obj.dataTable = obj.dataTable(obj.dataTable.GenderCode == 2,:)% select a gender
             emo = do_factor_analysis(obj);
             obj.FactorNames = emo.factorNames;
             for k = 1:size(emo.FAScores,2)
@@ -1482,25 +1483,218 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 xlim([17 87])
             end
         end
+        function obj = ttestCountryGenderAncova(obj)
+           emo = do_factor_analysis(obj);
+           %ageCats = onehotencode(obj.dataTable.AgeCategory,2);
+            figure
+            for k = 1:size(emo.FAScores,2)
+                subplot(1,size(emo.FAScores,2),k)
+                [b(:,k),~,r(:,k),~,statCov{k}] = regress(emo.FAScores(:,k),[ones(length(emo.FAScores),1) obj.dataTable.Age]);
+                gscatter(obj.dataTable.Age,emo.FAScores(:,k),obj.dataTable{:,obj.groupingCategory})
+            end
+            emo.FAScores = r; %Regressing out the influence of age from fator scores 
+            for i = 1:length(obj.subgroupNames)
+                for k = 1:size(emo.FAScores,2) 
+                    data = obj.dataTable(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{i}),:);
+                    FScores = emo.FAScores(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{i}),k);
+                    m = FScores(strcmpi(data.Gender,'Male'));
+                    f = FScores(strcmpi(data.Gender,'Female'));
+                    [~,p(i,k),~,tstats] = ttest2(f,m);
+                    tstat(i,k) = tstats.tstat;
+                    tstatStr{i,k} = stats.explore_age.pvalue_stars_string_estimate(tstat(i,k),p(i,k),1);
+                end
+            end
+            disp(array2table(tstatStr,'RowNames',obj.subgroupNames,'VariableNames',emo.factorNames))
+            %plot tstatistic for each factor 
+            figure
+            for k=1:size(emo.FAScores,2)
+                [t,i] = sortrows(tstat(:,k));
+                subplot(1,size(emo.FAScores,2),k)
+                plot((t));
+                set(gca,'Xtick',1:height(t),'XTickLabels',obj.subgroupNames(i));
+                xtickangle(45)
+                title(emo.factorNames{k})
+            end
+            giiPath = 'data/2020_statistical_annex_table_5.xlsx';
+            gii = readtable(giiPath);
+            
+            for c = 1:length(obj.subgroupNames)
+                giiValue(c) = gii.Var3(strcmpi(gii.Var2,obj.subgroupNames{c}));
+                %FAGroups(c,:) = nanmean(emo.FAScores(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{c}),:));
+            end
+            
+            figure
+            for k=1:size(emo.FAScores,2)
+                [rho,pval] = corr(giiValue',tstat(:,k));
+                subplot(1,size(emo.FAScores,2),k)
+                scatter(giiValue',tstat(:,k),'filled');                
+                title([emo.factorNames{k}, newline 'r = ' sprintf('%0.02f',rho)])
+                xlabel('Gender Inequality Index')
+                ylabel ('Tstatistic')
+                lsline
+            end
+        end
+        function obj = ttestGIISubscalesAncova(obj)
+           emo = do_factor_analysis(obj);
+           %ageCats = onehotencode(obj.dataTable.AgeCategory,2);
+            figure
+            for k = 1:size(emo.FAScores,2)
+                subplot(1,size(emo.FAScores,2),k)
+                [b(:,k),~,r(:,k),~,statCov{k}] = regress(emo.FAScores(:,k),[ones(length(emo.FAScores),1) obj.dataTable.Age]);
+                gscatter(obj.dataTable.Age,emo.FAScores(:,k),obj.dataTable{:,obj.groupingCategory})
+            end
+            emo.FAScores = r; %Regressing out the influence of age from fator scores 
+            for i = 1:length(obj.subgroupNames)
+                for k = 1:size(emo.FAScores,2) 
+                    data = obj.dataTable(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{i}),:);
+                    FScores = emo.FAScores(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{i}),k);
+                    m = FScores(strcmpi(data.Gender,'Male'));
+                    f = FScores(strcmpi(data.Gender,'Female'));
+                    [~,p(i,k),~,tstats] = ttest2(f,m);
+                    tstat(i,k) = tstats.tstat;
+                    tstatStr{i,k} = stats.explore_age.pvalue_stars_string_estimate(tstat(i,k),p(i,k),1);
+                end
+            end
+            disp(array2table(tstatStr,'RowNames',obj.subgroupNames,'VariableNames',emo.factorNames))
+            %plot tstatistic for each factor 
+            figure
+            for k=1:size(emo.FAScores,2)
+                [t,i] = sortrows(tstat(:,k));
+                subplot(1,size(emo.FAScores,2),k)
+                plot((t));
+                set(gca,'Xtick',1:height(t),'XTickLabels',obj.subgroupNames(i));
+                xtickangle(45)
+                title(emo.factorNames{k})
+            end
+            giiPath = 'data/2020_statistical_annex_table_5.xlsx';
+            gii = readtable(giiPath);
+            
+            %plot gii values
+            figure
+            [g,i] = sortrows(giiValue');
+            plot(g)
+            set(gca, 'XTick',1:length(obj.subgroupNames),'XTickLabel',obj.subgroupNames(i))
+            xlabel('Countries of origins')
+            xtickangle(45)
+            ylabel('Gender Inequality Index')
+            
+            education = gii.SDG4_4 - gii.Var15;
+            labor = gii.Var17 - gii.Var19;
+            
+            giiVars = [gii.Var3, gii.SDG3_1, gii.SDG3_7, education, labor]
+            labels = {'GII', 'Maternal Mortality','Adolescent birth rate','Parliament seats',...
+                'Education Participation','Labor Market Participation'}
+            for c = 1:length(obj.subgroupNames)
+                for i=1:5
+                giiRes(i,c) = giiVars(strcmpi(gii.Var2,obj.subgroupNames{c}),i);
+                %FAGroups(c,:) = nanmean(emo.FAScores(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{c}),:));
+                end
+            end
+            
+            for i=1:5
+                figure
+            for k=1:size(emo.FAScores,2)
+                [rho,pval] = corr(giiRes(i,:)',tstat(:,k));
+                subplot(1,size(emo.FAScores,2),k)
+                scatter(giiRes(i,:)',tstat(:,k),'filled');                
+                title([emo.factorNames{k}, newline 'r = ' sprintf('%0.02f',rho)])
+                xlabel(labels{i})
+                ylabel ('Tstatistic')
+                lsline
+            end
+            sgtitle(labels{i})
+            end
+        end
+        function obj = ttestCountryGender(obj)
+            emo = do_factor_analysis(obj);
+            for i = 1:length(obj.subgroupNames)
+                for k = 1:size(emo.FAScores,2) 
+                    data = obj.dataTable(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{i}),:);
+                    FScores = emo.FAScores(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{i}),k);
+                    m = FScores(strcmpi(data.Gender,'Male'));
+                    f = FScores(strcmpi(data.Gender,'Female'));
+                    [~,p(i,k),~,tstats] = ttest2(f,m);
+                    tstat(i,k) = tstats.tstat;
+                    tstatStr{i,k} = stats.explore_age.pvalue_stars_string_estimate(tstat(i,k),p(i,k),1);
+                end
+            end
+            disp(array2table(tstatStr,'RowNames',obj.subgroupNames,'VariableNames',emo.factorNames))
+            %plot tstatistic for each factor 
+            figure
+            for k=1:size(emo.FAScores,2)
+                [t,i] = sortrows(tstat(:,k));
+                subplot(1,size(emo.FAScores,2),k)
+                plot((t));
+                set(gca,'Xtick',1:height(t),'XTickLabels',obj.subgroupNames(i));
+                xtickangle(45)
+                title(emo.factorNames{k})
+            end
+            giiPath = 'data/2020_statistical_annex_table_5.xlsx';
+            gii = readtable(giiPath);
+            
+            for c = 1:length(obj.subgroupNames)
+                giiValue(c) = gii.Var3(strcmpi(gii.Var2,obj.subgroupNames{c}));
+                %FAGroups(c,:) = nanmean(emo.FAScores(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{c}),:));
+            end
+            %plot gii values
+            figure
+            [g,i] = sortrows(giiValue');
+            plot(g)
+            set(gca, 'XTick',1:length(obj.subgroupNames),'XTickLabel',obj.subgroupNames(i))
+            xlabel('Countries of origins')
+            xtickangle(45)
+            ylabel('Gender Inequality Index')
+            
+            figure
+            for k=1:size(emo.FAScores,2)
+                [rho,pval] = corr(giiValue',tstat(:,k));
+                subplot(1,size(emo.FAScores,2),k)
+                scatter(giiValue',tstat(:,k),'filled');                
+                title([emo.factorNames{k}, newline 'r = ' sprintf('%0.02f',rho)])
+                xlabel('Gender Inequality Index')
+                ylabel ('Tstatistic')
+                lsline
+            end
+        end
+        function obj = anovaCountryAge(obj)
+            emo = do_factor_analysis(obj);
+            emo.factorNames;
+            for i = 1:length(obj.subgroupNames)
+                for k = 1:size(emo.FAScores,2)
+                    data = obj.dataTable(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{i}),:);
+                    FScores = emo.FAScores(strcmpi(obj.dataTable{:,obj.groupingCategory},obj.subgroupNames{i}),k)
+                    m = FScores(strcmpi(data.Gender,'Male'));
+                    f = FScores(strcmpi(data.Gender,'Female'));
+                    [~,p(i,k),~,tstats] = ttest2(f,m);
+                    [~,tbl] = anova1(cell2mat(a),[],'off');
+                    fStat(ii) = tbl{2,5}; % anova F-statistic
+                    SScol = tbl{2,2}; SStotal = tbl{4,2};
+                    etaSquare = SScol/SStotal;
+                    tstat(i,k) = tstats.tstat;
+                    tstatStr{i,k} = stats.explore_age.pvalue_stars_string_estimate(tstat(i,k),p(i,k),1);
+                end
+            end
+            disp(array2table(tstatStr,'RowNames',obj.subgroupNames,'VariableNames',emo.factorNames))
+        end
     end
     methods (Static)
         function [lower upper] = confidenceLimits_old(x,y,p,k,sigma)
-        % Kernel regression with constant bandwidth
-
-        % this should be done for each of the existing ages
-        % separately, maybe: for each age, do a datasample with
-        % replacement with the number
-        % of people that we have from that age.
+            % Kernel regression with constant bandwidth
+            
+            % this should be done for each of the existing ages
+            % separately, maybe: for each age, do a datasample with
+            % replacement with the number
+            % of people that we have from that age.
             p1 = (100-p)/2;
             p2 = 100-(100-p)/2;
             ageRange = min(x):max(x);
             for j = 1:k
                 ys = y;
                 for ii = 1:numel(ageRange)
-                logAge = x == ageRange(ii);
-                numParticPerAgeYear(ii) = sum(logAge);
-                [d idx] = datasample(y(logAge),size(y(logAge),1));
-                ys(logAge) = d;
+                    logAge = x == ageRange(ii);
+                    numParticPerAgeYear(ii) = sum(logAge);
+                    [d idx] = datasample(y(logAge),size(y(logAge),1));
+                    ys(logAge) = d;
                 end
                 [B,BG] = groupsummary(ys,x,@mean);
                 m = nan(1,max(BG));
@@ -1514,25 +1708,25 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             upper = squeeze(prctile(r,p2,1))';
         end
         function [CI,lower,upper] = confidenceLimits(x,y,p,k,sigma,bootCImethod)
-        %[lower upper]: use the quantile method
-        %CI = uses the standard method (normal approximation)
-        % Kernel regression with constant bandwidth
-
+            %[lower upper]: use the quantile method
+            %CI = uses the standard method (normal approximation)
+            % Kernel regression with constant bandwidth
+            
             p1 = (100-p)/2;
             p2 = 100-(100-p)/2;
             ageRange = min(x):max(x);
             for j = 1:k
                 data = [x,y];% original data
-                ds = datasample(data,size(data,1));% data sample
+                ds = datasample(data,size(data,1),'Replace',true);% data sample
                 [B,BG] = groupsummary(ds(:,2),ds(:,1),@mean);% mean
-                                                             % feature value
-                                                             % for
-                                                             % each
-                                                             % age
-                                                             % year
-                                                             % in
-                                                             % the
-                                                             % data sample
+                % feature value
+                % for
+                % each
+                % age
+                % year
+                % in
+                % the
+                % data sample
                 m = nan(1,max(BG));
                 m(BG) = B;
                 z1=sum(ds(:,2).*normpdf(ageRange-ds(:,1),0,sigma));
@@ -1545,33 +1739,33 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
             upper = squeeze(prctile(r,p2,1))';
         end
         function [p,n]=numSubplots(n)
-        % function [p,n]=numSubplots(n)
-        %
-        % Purpose
-        % Calculate how many rows and columns of sub-plots are needed to
-        % neatly display n subplots.
-        %
-        % Inputs
-        % n - the desired number of subplots.
-        %
-        % Outputs
-        % p - a vector length 2 defining the number of rows and number of
-        %     columns required to show n plots.
-        % [ n - the current number of subplots. This output is used only by
-        %       this function for a recursive call.]
-        %
-        %
-        %
-        % Example: neatly lay out 13 sub-plots
-        % >> p=numSubplots(13)
-        % p =
-        %     3   5
-        % for i=1:13; subplot(p(1),p(2),i), pcolor(rand(10)), end
-        %
-        %
-        % Rob Campbell - January 2010
-
-
+            % function [p,n]=numSubplots(n)
+            %
+            % Purpose
+            % Calculate how many rows and columns of sub-plots are needed to
+            % neatly display n subplots.
+            %
+            % Inputs
+            % n - the desired number of subplots.
+            %
+            % Outputs
+            % p - a vector length 2 defining the number of rows and number of
+            %     columns required to show n plots.
+            % [ n - the current number of subplots. This output is used only by
+            %       this function for a recursive call.]
+            %
+            %
+            %
+            % Example: neatly lay out 13 sub-plots
+            % >> p=numSubplots(13)
+            % p =
+            %     3   5
+            % for i=1:13; subplot(p(1),p(2),i), pcolor(rand(10)), end
+            %
+            %
+            % Rob Campbell - January 2010
+            
+            
             while isprime(n) & n>4,
                 n=n+1;
             end
@@ -1597,6 +1791,20 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                 N=n+1;
                 [p,n]=stats.explore_age.numSubplots(N); %Recursive!
             end
+        end
+        function y = pvalue_stars_string_estimate(estimate,pval,mulComparisons)
+            % for a given p-val, gives stars
+            if pval < .001/mulComparisons
+                stars = '***';
+            elseif pval < .01/mulComparisons & pval >= .001/mulComparisons
+                stars = '**';
+            elseif pval < .05/mulComparisons & pval >= .01/mulComparisons
+                stars = '*';
+            elseif pval >= .05/mulComparisons
+                stars = '';
+            end
+            y=sprintf('%0.02f',round(estimate,2));
+            y=[y stars];
         end
     end
 end
