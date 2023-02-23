@@ -7,6 +7,7 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
     %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);factorSolutionAgeGenderReplications(obj)
     %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoVarsRegressionScatter(obj)
     %obj = stats.explore_age();obj.filterMethod='UnbalancedSubgroups';obj=do_load_data(obj);ttestCountryGender(obj)
+    %obj = stats.explore_age();obj.filterMethod='AllResponses';obj=do_load_data(obj);emoFactorsAgeNonLinear(obj)
     properties
         FactorNames
         countryType = 'Country_childhood';
@@ -734,6 +735,78 @@ classdef explore_age < load_data.load_data & stats.factor_analysis
                     title(strrep(mytitle,'_',' '))
                 end
             end
+        end
+        function obj = emoFactorsAgeNonLinear(obj)
+           emo = do_factor_analysis(obj);
+            obj.FactorNames = emo.factorNames;
+            emoLabels = obj.FactorNames;
+            for k = 1:size(emo.FAScores,2)
+                FAs{k} = emo.FAScores(:,k);
+            end
+            obj.dataTable = addvars(obj.dataTable,FAs{:},'After','Rebelliousness','NewVariableNames',obj.FactorNames);
+            dataMF = obj.dataTable;
+            dataMF(matches(dataMF.Gender,'Other'),:) = [];
+            genderLabels = unique(dataMF.Gender);
+            age = zscore(obj.dataTable.Age);
+            for k = 1:size(emo.FAScores,2)
+                figure
+                %polyfit linear
+                [p,S,mu]=polyfit(age,FAs{k},1);
+                p_str=[];
+                for i=1:length(p)
+                    if p(i)<0
+                       p_str{i} = string(round(p(i),3));
+                    else
+                       p_str{i} = strcat('+',string(round(p(i),3)));  
+                    end
+                end
+                [y_fit,delta] = polyval(p,age,S);
+                subplot(1,2,1)    
+                plot(age,FAs{k},'o')
+                hold on
+                plot(age,y_fit,'r-','LineWidth',2)
+                sgtitle(emoLabels{k})
+                form=strcat('Parameters: y=',p_str{1},'x ',p_str{2});
+                mse = immse(age,y_fit);
+                aic = length(FAs{k}) * log(mse) + 2 * 3
+                bic = length(FAs{k}) * log(mse) + 3 * log(length(FAs{k}))
+                mseStr = strcat(' MSE: ',string(round(mse,2)));
+                aicStr = strcat(' AIC: ',string(round(aic,2)),' BIC: ',string(round(bic,2)));
+                title(['Linear Fit',form,mseStr,aicStr])
+                ylabel('Factor Score'); xlabel('Age')
+                legend('Data','Linear Fit','95% Prediction Interval')
+                hold off
+
+                %polyfit quadratic
+                [p,S,mu]=polyfit(age,FAs{k},2);
+                p_str=[];
+                for i=1:length(p)
+                    if p(i)<0
+                       p_str{i} = string(round(p(i),3));
+                    else
+                       p_str{i} = strcat('+',string(round(p(i),3))); 
+                    end
+                end
+                [y_fit,delta] = polyval(p,age,S);
+                x= linspace(min(age),max(age),2000);
+                y_quadratic = polyval(p,x,S);
+                subplot(1,2,2)    
+                plot(age,FAs{k},'o')
+                hold on
+                plot(x,y_quadratic,'r-','LineWidth',2)
+                form=strcat('Parameters: y=',p_str{1},'x^2 ',p_str{2},...
+                    'x ',p_str{3});
+                mse = immse(age,y_fit);
+                aic = length(FAs{k}) * log(mse) + 2 * 3
+                bic = length(FAs{k}) * log(mse) + 3 * log(length(FAs{k}))
+                mseStr = strcat(' MSE: ',string(round(mse,2)));
+                aicStr = strcat(' AIC: ',string(round(aic,2)),' BIC: ',string(round(bic,2)));
+                title(['Quadratic Fit',form,mseStr,aicStr])
+                ylabel('Factor Score'); xlabel('Age')
+                legend('Data','Quadratic Fit')
+                hold off
+            end
+            keyboard
         end
         function obj = emoFactorsDensity(obj,options)
             arguments
