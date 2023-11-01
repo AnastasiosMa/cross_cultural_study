@@ -6,7 +6,7 @@ classdef factor_analysis < load_data.load_data
         rotateMethod = 'Varimax';
         emo
         emoLabels
-        showPlotsAndTextFA = 0;
+        showPlotsAndTextFA = 1;
         distanceM = 'euclidean';
         removeLeastRatedTerms = 1;
         removalPercentage = .1;
@@ -67,14 +67,24 @@ classdef factor_analysis < load_data.load_data
             end
             t_m = table(obj.emoLabels', mean(obj.emo)',std(obj.emo)',...
                 'VariableNames',{'Emotion','Mean score','Standard deviation'});
-            t_m = sortrows(t_m,2,'descend');
+            t_m = sortrows(t_m,2,'ascend');
+            
+            %'FaceColor',[0.75,0.75,0.75]
+            raw_means = table2array(t_m(:,2));
+            rescaled_means = (raw_means - 1)/(4-1);
             figure
-            errorbar(table2array(t_m(:,2)),table2array(t_m(:,3))/2,'-s','markersize',7,...
-                     'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
-            set(gca,'XTick',1:(height(t_m)),'XTickLabels',strrep(table2array(t_m(:,1)),'_',' '),'FontSize',12),xtickangle(90)
-            xlabel('Emotions','FontSize',14),ylabel('Mean ratings','FontSize',14)
-            %title('Means and standard deviations of emotion terms')
+            b = barh(rescaled_means,'EdgeColor','k','LineWidth',1.5,'BarWidth',5,'BaseValue',0);
+            set(gca,'FontSize',24,'LineWidth',2)
+            set(gca,'YTick',1:(height(t_m)),'YTickLabels',strrep(table2array(t_m(:,1)),'_',' '));
             snapnow
+
+            %figure
+            %errorbar(table2array(t_m(:,2)),table2array(t_m(:,3))/2,'-s','markersize',7,...
+            %         'markeredgecolor','k','markerfacecolor','k','linewidth',1.5);
+            %set(gca,'XTick',1:(height(t_m)),'XTickLabels',strrep(table2array(t_m(:,1)),'_',' '),'FontSize',12),xtickangle(90)
+            %xlabel('Emotions','FontSize',14),ylabel('Mean ratings','FontSize',14)
+            %title('Means and standard deviations of emotion terms')
+            %snapnow
             if obj.showPlotsAndTextFA == 1
                 disp(t_m);
             end
