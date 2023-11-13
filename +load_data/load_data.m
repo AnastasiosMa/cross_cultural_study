@@ -69,7 +69,7 @@ classdef load_data
                 obj = count_participants(obj);
                 obj = age_distribution(obj);
                 obj = gender_distribution(obj);
-                %obj = country_venn_diagrams(obj);
+                obj = country_venn_diagrams(obj);
             end
             if strcmpi(obj.filterMethod,'BalancedSubgroups')...
                     && obj.createBalancedSubgroups == 1
@@ -254,12 +254,47 @@ classdef load_data
             %disp(['Number of complete responses: ' num2str(N_complete)]);
             country_counts = groupcounts(obj.dataTable(complete_responses,:),...
                 'Country_childhood');
+
             country_counts.('Country_childhood') = string(country_counts.('Country_childhood'));
             country_counts = sortrows(country_counts,-2);
             thx = 10;
             disp(['Displaying countries with more than ' num2str(thx) ' participants']);
             country_counts = country_counts(find(country_counts.GroupCount>=thx),:);
             disp(country_counts);
+
+
+            %make pie chart of countries
+            idx = find(country_counts{:,3}>3);
+            country_counts = country_counts(idx,:);
+            country_counts{end+1,1} = {'Other'};country_counts{end,2} = N_complete - sum(table2array(country_counts(:,2))); 
+            country_counts{end,3} = country_counts{end,2}/N_complete*100; 
+            
+            %pie
+
+            figure
+            subplot(1,2,1)
+            bs = brewermap(height(language_counts)+6,'Blues');
+            bs = bs([1,3,5:height(language_counts)+2],:); %%HARDCODED
+            language_full_name = {'English','Lithuanian','Spanish','French','Russian','Greek','Turkish','Finnish',...
+                'Chinese','German','Portuguese'}%%HARDCODED
+            for i = 1:height(language_counts)
+                labels{i} =  [language_full_name{i}, '\newline',' ', num2str(round(language_counts{i,3},1)), '%'];
+            end
+            ax = gca();
+            h = pie(language_counts{:,3},labels);
+            set(findobj(h,'type','text'),'fontsize',20);
+            ax.Colormap = bs;
+
+            subplot(1,2,2)
+            bs = brewermap(height(country_counts)+3,'Blues');
+            bs = bs(1:height(country_counts),:);
+            for i = 1:height(country_counts)
+                labels{i} =  [char(country_counts{i,1}), '\newline',char(' '), char(num2str(round(country_counts{i,3},1))), char('%')];
+            end
+            ax = gca();
+            h = pie(country_counts{:,3},labels);
+            set(findobj(h,'type','text'),'fontsize',20);
+            ax.Colormap = bs;
         end
         function obj = discard_missing_data(obj)
             N = height(obj.dataTable);
@@ -306,6 +341,9 @@ classdef load_data
             disp(array2table(stats_c,'VariableNames',{'Mean','SD'},'RowNames',countries_N))
             figure
             boxplot(obj.dataTable.Age(idx_c),obj.dataTable.Country_childhood(idx_c))
+            %h = boxplot(obj.dataTable.Age(idx_c),obj.dataTable.Country_childhood(idx_c),'OutlierSize',12);
+            %set(h,{'linew'},{4})
+            %set(gca,'FontSize',32,'LineWidth',2)
             xlabel('Countries');ylabel('Age');xtickangle(45)
             title('Boxplots per Country');
             snapnow
@@ -341,7 +379,9 @@ classdef load_data
             venn([N,N,N],[length(v1),length(v2),length(v3),length(v4)],...
                 'ErrMinMode','ChowRodgers');
             legend({'Childhood','Adulthood','Identity'})
-            title('Venn Diagram of Country overlap (All participants)')
+            set(gca,'FontSize',24,'LineWidth',2);
+            %title('Venn Diagram of Country overlap')
+            box on
             snapnow
             %for each country
             groupNum = length(obj.subgroupNames);
@@ -377,12 +417,17 @@ classdef load_data
                 obj.dataTable = obj.dataTable(~(obj.dataTable.Duration<obj.durationThr),:);
             end
             if obj.showPlotsAndText == 1
-                figure,histogram(dur);
-                xline(obj.durationThr,'k--')
-                h = text(obj.durationThr+0.5,150,'Exclusion Threshold','FontSize',10);
+                figure
+                %histogram(dur);
+                histogram(dur,'LineWidth',2);
+                set(gca,'FontSize',32,'LineWidth',2)
+                xline(obj.durationThr,'k--','LineWidth',4)
+                %xline(obj.durationThr,'k--')
+                %h = text(obj.durationThr+0.5,150,'Exclusion Threshold','FontSize',10);
+                h = text(obj.durationThr+0.5,120,'Exclusion Threshold','FontSize',16);
                 set(h,'Rotation',90);
                 xlabel('Duration in minutes'); ylabel('Number of responses')
-                title('Survey Duration')
+                %title('Survey Duration')
                 snapnow
             end
         end
@@ -404,13 +449,17 @@ classdef load_data
                 disp(['Excluding ' num2str(sum(outliers_idx)) ' responses for low variability']);
             end
             if obj.showPlotsAndText == 1
-                figure,histogram(responderVariability)
-                xline(thresh,'k--')
-                h = text(thresh+0.03,100,'Exclusion Threshold','FontSize',10);
+                figure
+                %histogram(responderVariability)
+                histogram(responderVariability,'LineWidth',2)
+                set(gca,'FontSize',32,'LineWidth',2)
+                xline(thresh,'k--','LineWidth',4)
+                %h = text(thresh+0.03,100,'Exclusion Threshold','FontSize',10);
+                h = text(thresh+0.03,100,'Exclusion Threshold','FontSize',16);
                 set(h,'Rotation',90);
                 xlabel('Standard deviation')
-                ylabel('Number of responders')
-                title('Standard deviation of emotion ratings for each responder')
+                ylabel('Number of responses')
+                title('Standard Deviation of Emotion Ratings')
                 snapnow
             end
         end
@@ -421,12 +470,16 @@ classdef load_data
                 disp(['Age Threshold: ' num2str(obj.excludeAge)])
                 disp(['Excluding ' num2str(height(obj.dataTable)-length(idx)) ' responses'])
                 figure
-                histogram(obj.dataTable.Age);
-                xline(obj.excludeAge,'k--')
-                h = text(obj.excludeAge-3,50,'Exclusion Threshold','FontSize',10);
+                %histogram(obj.dataTable.Age);
+                histogram(obj.dataTable.Age,'LineWidth',2);
+                set(gca,'FontSize',32,'LineWidth',2)
+                %xline(obj.excludeAge,'k--')
+                xline(obj.excludeAge,'k--','LineWidth',5)
+                %h = text(obj.excludeAge-3,50,'Exclusion Threshold','FontSize',10);
+                h = text(obj.excludeAge-3,50,'Exclusion Threshold','FontSize',16);
                 set(h,'Rotation',90);
                 xlabel('Age (in years)'); ylabel('Number of responders');
-                title('Age Histogram')
+                %title('Age Histogram')
                 snapnow
             end
             obj.dataTable = obj.dataTable(idx,:);
@@ -438,7 +491,8 @@ classdef load_data
             topArtist = artistT(1:10,:);
             dur = duration(0,30,0);
             if obj.showPlotsAndText ==1
-                figure, h=histogram(obj.dataTable.EndDate,'BinWidth',dur);
+                figure
+                h=histogram(obj.dataTable.EndDate,'BinWidth',dur);
                 title('Histogram of responses in time')
                 snapnow
                 [BinCounts,idx] = sort(h.BinCounts,'descend');
