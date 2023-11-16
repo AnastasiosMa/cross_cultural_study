@@ -3,7 +3,7 @@ classdef load_data
     %example obj = load_data.load_data();obj = do_load_data(obj);
     properties
         dataPath = 'responses_pilot/Music Listening Habits.csv';
-        filterMethod = 'AllResponses' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups'
+        filterMethod = 'UnbalancedSubgroups' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups'
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable %table to be used in the analysis
         alldataTable %table with data from all responses
@@ -70,6 +70,7 @@ classdef load_data
                 obj = age_distribution(obj);
                 obj = gender_distribution(obj);
                 obj = country_venn_diagrams(obj);
+                obj = language_consistency(obj);
             end
             if strcmpi(obj.filterMethod,'BalancedSubgroups')...
                     && obj.createBalancedSubgroups == 1
@@ -81,7 +82,7 @@ classdef load_data
             end
             if obj.showPlotsAndText==1 && strcmpi(obj.filterMethod,'BalancedSubgroups')
                 obj = age_subgroups(obj);
-                obj = gender_subgroups(obj);
+                %obj = gender_subgroups(obj);
             end
             if obj.createExcel==1
                 writetable(obj.dataTable,'ccsData.csv','Encoding','UTF-8')
@@ -152,6 +153,11 @@ classdef load_data
                     obj.dataTable.Gender{k} = obj.genderLabels{3};
                 end
             end
+            %correct aggresion
+            if sum(strcmpi('Agression',obj.dataTable.Properties.VariableNames))
+                i = find(strcmpi('Agression',obj.dataTable.Properties.VariableNames));
+                obj.dataTable.Properties.VariableNames{i} = 'Aggresion';
+            end
             %correct Musicianship
             Musicianship = categorical(obj.dataTable.Musicianship,[1:5],obj.musicianshipLabels);
             obj.dataTable = addvars(obj.dataTable,Musicianship(:),'NewVariableNames','musicianshipLabels');
@@ -164,8 +170,8 @@ classdef load_data
             % economic situation
             EconomicSituation = categorical(obj.dataTable.EconomicSituation,[1:3],obj.economicSituationLabels);
             obj.dataTable = addvars(obj.dataTable,EconomicSituation(:),'NewVariableNames','economicSituationLabels');
-            
-            
+
+
             % add TIPI scores
             tipiVars = {'Extraverted_Enthusiastic',
                 'Critical_Quarrelsome',
@@ -197,9 +203,9 @@ classdef load_data
             curVar = strings(size(tipiCompleteLogical));
             curVar(tipiCompleteLogical) = obj.TIPIscalesNames(I);
             obj.dataTable = addvars(obj.dataTable,categorical(curVar),'NewVariableNames','TIPICategory');
-            
+
             %obj.dataTable = removevars(obj.dataTable,tipiVars);
-            
+
             % add horizontal/vertical individualism collectivism scores (just based on computing
             % means on the items that loaded most for each factor
             % in Triandis and Gelfand, 1998)
@@ -266,9 +272,9 @@ classdef load_data
             %make pie chart of countries
             idx = find(country_counts{:,3}>3);
             country_counts = country_counts(idx,:);
-            country_counts{end+1,1} = {'Other'};country_counts{end,2} = N_complete - sum(table2array(country_counts(:,2))); 
-            country_counts{end,3} = country_counts{end,2}/N_complete*100; 
-            
+            country_counts{end+1,1} = {'Other'};country_counts{end,2} = N_complete - sum(table2array(country_counts(:,2)));
+            country_counts{end,3} = country_counts{end,2}/N_complete*100;
+
             %pie
 
             figure
@@ -384,7 +390,9 @@ classdef load_data
             box on
             snapnow
             %for each country
+            figure
             groupNum = length(obj.subgroupNames);
+            tcl=tiledlayout(3,ceil(groupNum/3))
             for i = 1:length(obj.subgroupNames)
                 idx_child = find(strcmpi(obj.groupTable.Country_childhood,obj.subgroupNames{i}));
                 idx_adult = find(strcmpi(obj.groupTable.Country_adulthood,obj.subgroupNames{i}));
@@ -393,12 +401,13 @@ classdef load_data
                 v2 = intersect(idx_child,idx_identity);
                 v3 = intersect(idx_identity,idx_adult);
                 v4 = intersect(v1,v2);
-                subplot(3,ceil(groupNum/3),i)
+                nexttile(tcl)
                 title(obj.subgroupNames{i})
                 venn([length(idx_child),length(idx_adult),length(idx_identity)],...
                     [length(v1),length(v2),length(v3),length(v4)],'ErrMinMode','ChowRodgers');
-                legend({'Childhood','Adulthood','Identity'})
+                box on
             end
+            legend({'Childhood','Adulthood','Identity'},'Location','eastoutside')
         end
         function obj = survey_duration(obj)
             obj.dataTable.Duration = minutes(obj.dataTable{:,'EndDate'} - ...
@@ -514,6 +523,65 @@ classdef load_data
                 disp([num2str(length(faultyIDs)) ' responses removed from ID'])
             end
         end
+        function obj = language_consistency(obj)
+            %HARDCODED LOCATION OF EMOTIONS
+            emo = obj.dataTable{:,16:48};
+            emoLabels = obj.dataTable.Properties.VariableNames(16:48);% emotion terms (obj.dataTable)
+            remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]);
+            languages = unique(obj.dataTable{:,'language'});
+            for i = 1:length(languages)
+                d(:,i) = rescale(pdist(emo(strcmpi(languages(i),...
+                    table2array(obj.dataTable(:,'language'))),:)','euclidean'));
+                sqForm{i} = squareform(d(:,i));
+                sqForm{i} = remove_diagonal(sqForm{i});
+            end
+            t_corr = corr(d,'rows','complete');
+            figure, hold on
+            imagesc(t_corr), colorbar
+            ax = gca;
+            ax.YTick = 1:length(languages);
+            ax.XTick = 1:length(languages);
+            ax.YTickLabel = languages;
+            ax.XTickLabel = languages;
+            ax.XTickLabelRotation = 45;
+            hold off
+            title('Correlations between languages')
+            snapnow
+            for i=1:length(sqForm{1})
+                dCat{i} = cell2mat(arrayfun(@(x) x{:}(:,i), sqForm, 'UniformOutput', false));
+                alpha(i,1) = stats.factor_analysis.cronbach(dCat{i});
+            end
+            disp('*** CROSS-CULTURAL CONSISTENCY OF EMOTION TERMS ***')
+            disp('Running Cronbachs Alpha on pairwise distances vector of each emotion between LANGUAGES')
+            t_alpha = array2table(alpha,'VariableNames',{'CronbachAlpha'},'RowNames',emoLabels);
+            t_alpha = sortrows(t_alpha,1,'ascend');
+            disp(t_alpha)
+
+            figure
+            b = barh(table2array(t_alpha),'EdgeColor','k','LineWidth',1.5,'BaseValue',0);
+            set(gca,'FontSize',24,'LineWidth',2)
+            set(gca,'YTick',1:(height(t_alpha)),'YTickLabels',t_alpha.Properties.RowNames);
+            snapnow
+
+            %mean correlations between languages
+            for i = 1:length(dCat)
+                temp = corr(dCat{i});
+                temp = remove_diagonal(temp);
+                corr_mat(:,i) = temp(:,1);
+            end
+            corr_mean = mean(corr_mat);
+            figure
+            b = barh(corr_mean,'EdgeColor','k','LineWidth',1.5,'BaseValue',0);
+            set(gca,'FontSize',24,'LineWidth',2)
+            set(gca,'YTick',1:(height(t_alpha)),'YTickLabels',emoLabels);
+            snapnow
+
+            %intraclass correlations
+            for i = 1:length(dCat)
+                iccor(i) = ICC(dCat{i},'C-1');
+            end
+
+        end
         function obj = create_groupTable(obj)
             g = groupcounts(obj.dataTable,obj.groupingCategory);
             obj.subgroupNames = g.(obj.groupingCategory)(g.GroupCount >= ...
@@ -547,7 +615,7 @@ classdef load_data
                     ageMetricMin = subsampling.groupSD;
                 end
                 minMetricMin = subsampling.minMetric;
-                
+
             else
                 minMetricMin = 6; %random large value
             end
