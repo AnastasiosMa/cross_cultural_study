@@ -12,8 +12,8 @@ classdef factor_analysis < load_data.load_data
         removalPercentage = .1;
         removedEmotions
         removeEmoTermsManually = 0; %select manually emotions to remove
-        %emoToRemove  % = {'Spirituality','Longing','Amusement','Security','Belonging'};
-        emoToRemove% = {'Tension','Eroticism'};
+        %emoToRemove  = {'Spirituality','Longing','Amusement','Security','Belonging'};
+        emoToRemove = {'Belonging'};
         PCNum =3;%number of factors
         sumSquaredLoadings
         maxLoadingValues
@@ -73,7 +73,7 @@ classdef factor_analysis < load_data.load_data
             raw_means = table2array(t_m(:,2));
             rescaled_means = (raw_means - 1)/(4-1);
             figure
-            b = barh(rescaled_means,'EdgeColor','k','LineWidth',1.5,'BarWidth',5,'BaseValue',0);
+            b = barh(rescaled_means,'EdgeColor','k','LineWidth',1.5,'BaseValue',0);
             set(gca,'FontSize',24,'LineWidth',2)
             set(gca,'YTick',1:(height(t_m)),'YTickLabels',strrep(table2array(t_m(:,1)),'_',' '));
             snapnow
@@ -145,8 +145,10 @@ classdef factor_analysis < load_data.load_data
                 h.CellLabelFormat = '%.2f';
                 h.FontSize = 14;
                 ay = gca; ay.YDisplayLabels = num2cell([strrep(y{2},'_',' ') {'Median Factor Scores'}]);
-                factorNumbering = {['       Factor 1\newline'],...
-                    ['         Factor 2\newline'],['     Factor 3\newline']};
+                factorNumbering = {};
+                for i = 1:obj.PCNum
+                    factorNumbering{i} = ['       Factor ', num2str(i), '\newline'];
+                end
                 fNames = strcat(factorNumbering,obj.factorNames);
                 %XlabelArray = [factorNumbering;obj.factorNames];
                 %XtickLabels = strtrim(sprintf('%s\\newline%s\n', XlabelArray{:}));
@@ -195,8 +197,11 @@ classdef factor_analysis < load_data.load_data
             d = pdist(obj.emo',obj.distanceM);
             l = linkage(d,linkageMethod);
             figure
-            dendrogram(l,33,'orientation','right','labels',strrep(obj.emoLabels,'_',' '));
-            title('Dendrogram of emotion ratings')
+            h = dendrogram(l,33,'orientation','right','labels',strrep(obj.emoLabels,'_',' '));
+            set(gca,'LineWidth',2,'FontSize',24)
+            set(h,'linewidth',3)
+            box on
+            %title('Dendrogram of emotion ratings')
             snapnow
             %Cluster evaluation
             cluster_num = [2:6];
