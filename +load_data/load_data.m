@@ -3,7 +3,7 @@ classdef load_data
     %example obj = load_data.load_data();obj = do_load_data(obj);
     properties
         dataPath = 'responses_pilot/Music Listening Habits.csv';
-        filterMethod = 'UnbalancedSubgroups' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups'
+        filterMethod = 'AllResponses' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups'
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable %table to be used in the analysis
         alldataTable %table with data from all responses
@@ -389,6 +389,7 @@ classdef load_data
             %title('Venn Diagram of Country overlap')
             box on
             snapnow
+            if ~strcmpi(obj.filterMethod,'AllResponses')
             %for each country
             figure
             groupNum = length(obj.subgroupNames);
@@ -408,6 +409,7 @@ classdef load_data
                 box on
             end
             legend({'Childhood','Adulthood','Identity'},'Location','eastoutside')
+            end
         end
         function obj = survey_duration(obj)
             obj.dataTable.Duration = minutes(obj.dataTable{:,'EndDate'} - ...
@@ -559,8 +561,10 @@ classdef load_data
 
             figure
             b = barh(table2array(t_alpha),'EdgeColor','k','LineWidth',1.5,'BaseValue',0);
+            xlim([0.7 1])
             set(gca,'FontSize',24,'LineWidth',2)
             set(gca,'YTick',1:(height(t_alpha)),'YTickLabels',t_alpha.Properties.RowNames);
+            xlabel("Cronbach's Alpha", 'FontSize',32)
             snapnow
 
             %mean correlations between languages
