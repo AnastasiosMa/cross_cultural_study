@@ -14,7 +14,7 @@ classdef factor_analysis < load_data.load_data
         removeEmoTermsManually = 0; %select manually emotions to remove
         %emoToRemove  = {'Spirituality','Longing','Amusement','Security','Belonging'};
         emoToRemove = {'Belonging'};
-        PCNum =3;%number of factors
+        PCNum =5;%number of factors
         sumSquaredLoadings
         maxLoadingValues
         FAcoeff
