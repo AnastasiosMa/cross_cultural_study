@@ -3,7 +3,7 @@ classdef load_data
     %example obj = load_data.load_data();obj = do_load_data(obj);
     properties
         dataPath = 'responses_pilot/Music Listening Habits.csv';
-        filterMethod = 'BalancedSubgroups_only_natives' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups', 'BalancedSubgroups_only_natives'
+        filterMethod = 'UnbalancedSubgroups' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups', 'BalancedSubgroups_only_natives'
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable %table to be used in the analysis
         alldataTable %table with data from all responses
@@ -24,7 +24,7 @@ classdef load_data
         excludeResponsesPath = 'responses_pilot/faulty ids.xlsx';
         excludeAge = 16;
         %filterMethod %Accepted Inputs: 'AllResponses','BalancedSubgroups',
-        createBalancedSubgroups = 1; % create subgroups through permutations
+        createBalancedSubgroups = 0; % create subgroups through permutations
         groupingCategory = 'Country_childhood';
         balanceVariables = {'Gender','Age'}; %variables to be equalised across groups
         ageMetricMethod = 'groupSD'%'etaSq'
@@ -33,8 +33,8 @@ classdef load_data
         subgroupSubSamplingSize = 70; %Group size post subsampling
         subgroupIds %ids of selected subgroup responses
         repetitions = 1E+6; %number of permutations
-        exportSubgroups = 1;
-        subgroupIdxsPath = [];%'matchGenderAge/subsampling.mat'; %mat file with subgroup indexes
+        exportSubgroups = 0;
+        subgroupIdxsPath = []; %'subsampling/subsampling.mat'; %mat file with subgroup indexes
         createExcel = 1; %Create excel file with preprocessed data;
         showPlotsAndText = 1; %Display plots, tables, and text
     end
@@ -290,6 +290,7 @@ classdef load_data
             h = pie(language_counts{:,3},labels);
             set(findobj(h,'type','text'),'fontsize',20);
             ax.Colormap = bs;
+            title('a) Language','Units', 'normalized', 'Position', [0.5, 1.1, 1],'FontSize',24)
 
             subplot(1,2,2)
             bs = brewermap(height(country_counts)+3,'Blues');
@@ -301,6 +302,7 @@ classdef load_data
             h = pie(country_counts{:,3},labels);
             set(findobj(h,'type','text'),'fontsize',20);
             ax.Colormap = bs;
+            title('b) Country of Upbringing','Units', 'normalized', 'Position', [0.5, 1.1, 1],'FontSize',24)
         end
         function obj = discard_missing_data(obj)
             N = height(obj.dataTable);
@@ -382,10 +384,10 @@ classdef load_data
             v4 = intersect(v1,v2);
             N = height(obj.dataTable);
             figure
-            venn([N,N,N],[length(v1),length(v2),length(v3),length(v4)],...
+            venn([N/N,N/N,N/N],[length(v1)/N,length(v2)/N,length(v3)/N,length(v4)/N],...
                 'ErrMinMode','ChowRodgers');
-            legend({'Childhood','Adulthood','Identity'})
-            set(gca,'FontSize',24,'LineWidth',2);
+            legend({'Childhood','Adulthood','Identity'},'Location','best')
+            set(gca,'FontSize',24,'LineWidth',2,'XTick',[],'YTick',[]);
             %title('Venn Diagram of Country overlap')
             box on
             snapnow
@@ -393,7 +395,14 @@ classdef load_data
             %for each country
             figure
             groupNum = length(obj.subgroupNames);
-            tcl=tiledlayout(3,ceil(groupNum/3))
+            tcl=tiledlayout(4,ceil(groupNum/4))
+            nexttile(tcl)
+            venn([N/N,N/N,N/N],[length(v1)/N,length(v2)/N,length(v3)/N,length(v4)/N],...
+                'ErrMinMode','TotalError');
+            set(gca,'FontSize',24,'LineWidth',2,'XTick',[],'YTick',[]);
+            title('All participants')
+            axis([-0.8 0.8 -0.8 0.8])
+            box on
             for i = 1:length(obj.subgroupNames)
                 idx_child = find(strcmpi(obj.groupTable.Country_childhood,obj.subgroupNames{i}));
                 idx_adult = find(strcmpi(obj.groupTable.Country_adulthood,obj.subgroupNames{i}));
@@ -402,10 +411,13 @@ classdef load_data
                 v2 = intersect(idx_child,idx_identity);
                 v3 = intersect(idx_identity,idx_adult);
                 v4 = intersect(v1,v2);
+                total_length = length(idx_child)+length(idx_adult)+length(idx_identity);
                 nexttile(tcl)
                 title(obj.subgroupNames{i})
-                venn([length(idx_child),length(idx_adult),length(idx_identity)],...
-                    [length(v1),length(v2),length(v3),length(v4)],'ErrMinMode','ChowRodgers');
+                venn([length(idx_child)/total_length,length(idx_adult)/total_length,length(idx_identity)/total_length],...
+                    [length(v1)/total_length,length(v2)/total_length,length(v3)/total_length,length(v4)/total_length],'ErrMinMode','TotalError');
+                set(gca,'FontSize',24,'LineWidth',2,'XTick',[],'YTick',[]);
+                axis([-0.42 0.42 -0.42 0.42])
                 box on
             end
             legend({'Childhood','Adulthood','Identity'},'Location','eastoutside')
