@@ -3,7 +3,7 @@ classdef load_data
     %example obj = load_data.load_data();obj = do_load_data(obj);
     properties
         dataPath = 'responses_pilot/Music Listening Habits.csv';
-        filterMethod = 'UnbalancedSubgroups' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups', 'BalancedSubgroups_only_natives'
+        filterMethod = 'AllResponses' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups', 'BalancedSubgroups_only_natives'
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable %table to be used in the analysis
         alldataTable %table with data from all responses
@@ -573,7 +573,7 @@ classdef load_data
 
             figure
             b = barh(table2array(t_alpha),'EdgeColor','k','LineWidth',1.5,'BaseValue',0);
-            xlim([0.7 1])
+            xlim([0.75 1])
             set(gca,'FontSize',24,'LineWidth',2)
             set(gca,'YTick',1:(height(t_alpha)),'YTickLabels',t_alpha.Properties.RowNames);
             xlabel("Cronbach's Alpha", 'FontSize',32)
@@ -597,6 +597,42 @@ classdef load_data
                 iccor(i) = ICC(dCat{i},'C-1');
             end
 
+        end
+        function obj = plot_dendrogram_cronbach(obj)
+            emo = obj.dataTable{:,16:48};
+            emoLabels = obj.dataTable.Properties.VariableNames(16:48);% emotion terms (obj.dataTable)
+            %dendrogram
+            d_dendrogram = pdist(emo','euclidean');
+            l = linkage(d_dendrogram,'average');
+
+            remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]);
+            languages = unique(obj.dataTable{:,'language'});
+            for i = 1:length(languages)
+                d(:,i) = rescale(pdist(emo(strcmpi(languages(i),...
+                    table2array(obj.dataTable(:,'language'))),:)','euclidean'));
+                sqForm{i} = squareform(d(:,i));
+                sqForm{i} = remove_diagonal(sqForm{i});
+            end
+            for i=1:length(sqForm{1})
+                dCat{i} = cell2mat(arrayfun(@(x) x{:}(:,i), sqForm, 'UniformOutput', false));
+                alpha(i,1) = stats.factor_analysis.cronbach(dCat{i});
+            end
+            t_alpha = array2table(alpha,'VariableNames',{'CronbachAlpha'},'RowNames',emoLabels);
+            t_alpha = sortrows(t_alpha,1,'ascend');
+            
+            figure
+            subplot(1,2,1)
+            h = dendrogram(l,33,'orientation','right','labels',strrep(emoLabels,'_',' '));
+            set(gca,'LineWidth',2,'FontSize',24)
+            set(h,'linewidth',3)
+            box on
+            title('a) Euclidean distances of emotion ratings','FontSize',24)
+            subplot(1,2,2)
+            b = barh(table2array(t_alpha),'EdgeColor','k','LineWidth',1.5,'BaseValue',0);
+            xlim([0.75 1])
+            set(gca,'FontSize',24,'LineWidth',2)
+            set(gca,'YTick',1:(height(t_alpha)),'YTickLabels',t_alpha.Properties.RowNames);
+            title("b) Cronbach's Alpha between languages", 'FontSize',24)
         end
         function obj = create_groupTable(obj)
             if strcmpi(obj.filterMethod,'BalancedSubgroups_only_natives')
