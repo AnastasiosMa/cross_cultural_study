@@ -24,11 +24,12 @@ classdef explore_reasons < load_data.load_data & stats.factor_analysis
                 a = obj;
                 a.dataTableInd = find(contains(obj.dataTable.Properties.VariableNames, reasonTypesKey{j}));
                 a.dataTable.Properties.VariableNames(obj.dataTableInd) = strrep(obj.dataTable.Properties.VariableNames(obj.dataTableInd),'_',' ');
-                a.showPlotsAndText = 1;
+                a.showPlotsAndText = 0;
                 a.showPlotsAndTextFA = 1;
                 a.removeLeastRatedTerms = 0;
                 a.rotateMethod = 'varimax';
                 a.PCNum =2;%number of factors
+                a.scale_range = [1,5];
                 f(j) = do_factor_analysis(a);
             end
         end
@@ -55,13 +56,13 @@ classdef explore_reasons < load_data.load_data & stats.factor_analysis
                 Y = tableFunctions{:,:};
                 disp(['- Eliminating subjects with missing reason data (this problem applies to ''selected track'' only)'])
                 Y(any(isnan(tableFunctions{:,:}), 2), :) = [];% remove nan rows
-                set(0,'DefaultFigureVisible','off')
-                fa = stats.factor_analysis(obj.dataPath,obj.filterMethod);
-                set(0,'DefaultFigureVisible','on')
+                %set(0,'DefaultFigureVisible','off')
+                fa = do_factor_analysis(obj);
+                %set(0,'DefaultFigureVisible','on')
                 fa.FAScores(any(isnan(tableFunctions{:,:}), 2), :) = [];
                 for j = 1:numel(reasonLabels)
-                    FactorNames = {'TendernessLove','TriumphEnergy','PainSadness','PleasureHappiness',reasonLabels{j}};
-                                    mdl{j} = fitlm(zscore(fa.FAScores),zscore(Y(:,j)),'VarNames',FactorNames);
+                    varnames = [fa.factorNames, reasonLabels{j}]
+                                    mdl{j} = fitlm(zscore(fa.FAScores),zscore(Y(:,j)),'VarNames',varnames);
                                     disp(['- ' upper(ReasonType)])
                                     disp(mdl{j});
                 end
