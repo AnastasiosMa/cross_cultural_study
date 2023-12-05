@@ -1,5 +1,5 @@
 classdef factor_analysis < load_data.load_data
-%example obj = stats.factor_analysis();obj=do_load_data(obj);obj = do_factor_analysis(obj)
+    %example obj = stats.factor_analysis();obj=do_load_data(obj);obj = do_factor_analysis(obj)
 
     properties
         dataTableInd = [16:48]; % emotion terms (obj.dataTable)
@@ -14,12 +14,13 @@ classdef factor_analysis < load_data.load_data
         removeEmoTermsManually = 0; %select manually emotions to remove
         %emoToRemove  = {'Spirituality','Longing','Amusement','Security','Belonging'};
         emoToRemove = {'Belonging'};
-        PCNum =5;%number of factors
+        PCNum =3;%number of factors
         sumSquaredLoadings
         maxLoadingValues
         FAcoeff
         FAScores
         factorNames
+        scale_range = [1,4];
     end
     methods
         function obj = factor_analysis(obj)
@@ -33,9 +34,9 @@ classdef factor_analysis < load_data.load_data
             %     dataPath = [];
             %     filterMethod = [];
             % end
-                obj.emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);% emotion terms (obj.dataTable)
-                obj.emo = obj.dataTable{:,obj.dataTableInd};
-                obj = correct_emoLabels(obj);
+            obj.emoLabels = obj.dataTable.Properties.VariableNames(obj.dataTableInd);% emotion terms (obj.dataTable)
+            obj.emo = obj.dataTable{:,obj.dataTableInd};
+            obj = correct_emoLabels(obj);
             if obj.removeEmoTermsManually==1
                 obj = removeEmotionTerms(obj);
             end
@@ -53,6 +54,7 @@ classdef factor_analysis < load_data.load_data
             end
             if obj.showPlotsAndTextFA==1
                 obj = pca_emo(obj);
+                obj = velicers_map_test(obj);
             end
             obj = fa(obj);
             % if ~strcmpi(obj.filterMethod,'AllResponses')
@@ -68,10 +70,10 @@ classdef factor_analysis < load_data.load_data
             t_m = table(obj.emoLabels', mean(obj.emo)',std(obj.emo)',...
                 'VariableNames',{'Emotion','Mean score','Standard deviation'});
             t_m = sortrows(t_m,2,'ascend');
-            
+
             %'FaceColor',[0.75,0.75,0.75]
             raw_means = table2array(t_m(:,2));
-            rescaled_means = (raw_means - 1)/(4-1);
+            rescaled_means = (raw_means - obj.scale_range(1))/(obj.scale_range(2)-obj.scale_range(1));
             figure
             b = barh(rescaled_means,'EdgeColor','k','LineWidth',1.5,'BaseValue',0);
             set(gca,'FontSize',24,'LineWidth',2)
@@ -112,7 +114,13 @@ classdef factor_analysis < load_data.load_data
             exp_var = cumsum(explainedVar(1:obj.PCNum));
             if obj.showPlotsAndTextFA == 1
                 disp([num2str(exp_var(end)) '% of variance explained by first ' ...
-                      num2str(obj.PCNum) ' Pcs']);
+                    num2str(obj.PCNum) ' Pcs']);
+            end
+        end
+        function obj = velicers_map_test(obj)
+            N = stats.factor_analysis.map(obj.emo);
+            if obj.showPlotsAndTextFA == 1
+                disp(['Number of plots according to Velicers map test: ',num2str(N)])
             end
         end
         function  obj = fa(obj)
@@ -128,8 +136,8 @@ classdef factor_analysis < load_data.load_data
                     obj.factorNames{i}(2)));
             end
             if obj.showPlotsAndTextFA==1
-               fName = array2table(obj.factorNames','VariableNames',{'Factor Names'});
-               disp(fName)
+                fName = array2table(obj.factorNames','VariableNames',{'Factor Names'});
+                disp(fName)
             end
             obj.maxLoadingValues = array2table(max(obj.FAcoeff),'VariableNames',obj.factorNames);
             obj.sumSquaredLoadings = array2table(sum(obj.FAcoeff.^2),'VariableNames',obj.factorNames);
@@ -155,13 +163,13 @@ classdef factor_analysis < load_data.load_data
                 ax = gca; ax.XDisplayLabels = (fNames);
                 %title('Factor Loadings')
                 snapnow
-               % figure
-               % bar(mean(obj.FAScores))
-               % title('Factor Score Means')
-               % xlabel('Factors');ylabel('Mean factor score')
-               % xticklabels(obj.factorNames);
-               % xtickangle(45);
-               % snapnow
+                % figure
+                % bar(mean(obj.FAScores))
+                % title('Factor Score Means')
+                % xlabel('Factors');ylabel('Mean factor score')
+                % xticklabels(obj.factorNames);
+                % xtickangle(45);
+                % snapnow
             end
         end
         function obj = anova_fa(obj)
@@ -170,7 +178,7 @@ classdef factor_analysis < load_data.load_data
             figure
             for i = 1:obj.PCNum
                 fName = append('Factor ', num2str(i), ': ', obj.factorNames{i});
-                    disp(['ANOVA ' fName])
+                disp(['ANOVA ' fName])
                 [p(i),tbl{i}] = anova1(obj.FAScores(:,i),obj.groupTable.Country_childhood,'on');
                 close
                 snapnow
@@ -212,17 +220,17 @@ classdef factor_analysis < load_data.load_data
             silh_val = cell2mat(cellfun(@(x) x.CriterionValues, eva_link,'uni',false)); %get silhouettes
             [opt_sil_value,idx] = max(silh_val); %get cluster solution with max silhouette
             optimal_cnum = cluster_num(idx); %optimal number of clusters
-                                             %figure
-                                             %silhouette(eva_link{idx}.X,eva_link{idx}.OptimalY,'euclidean')
-                                             %title('Silhouette');
-                                             %snapnow
-                                             %disp('Silhouette values for best cluster')
-                                             %disp(array2table([optimal_cnum' opt_sil_value'],'VariableNames',{'Optimal number of clusters','Silhouette value'},'RowNames',{'Alldata'}));
-                                             %disp('Silhouette values for each cluster')
-                                             %disp(array2table(silh_val','VariableNames',{'All data'},'RowNames',cellstr(string(cluster_num))));
+            %figure
+            %silhouette(eva_link{idx}.X,eva_link{idx}.OptimalY,'euclidean')
+            %title('Silhouette');
+            %snapnow
+            %disp('Silhouette values for best cluster')
+            %disp(array2table([optimal_cnum' opt_sil_value'],'VariableNames',{'Optimal number of clusters','Silhouette value'},'RowNames',{'Alldata'}));
+            %disp('Silhouette values for each cluster')
+            %disp(array2table(silh_val','VariableNames',{'All data'},'RowNames',cellstr(string(cluster_num))));
         end
         function obj = vif(obj)
-        % Variance inflation factor
+            % Variance inflation factor
             R = corrcoef(obj.emo);
             VIF = diag(inv(R));
             VIF_t = array2table(VIF,'VariableNames',{'VIF'},'RowNames',obj.emoLabels);
@@ -233,7 +241,7 @@ classdef factor_analysis < load_data.load_data
             remove_diagonal = @(t)reshape(t(~diag(ones(1,size(t, 1)))), size(t)-[1 0]);
             for i = 1:length(obj.subgroupNames)
                 d(:,i) = pdist(obj.emo(strcmpi(obj.subgroupNames(i),...
-                                               table2array(obj.dataTable(:,obj.groupingCategory))),:)',obj.distanceM);
+                    table2array(obj.dataTable(:,obj.groupingCategory))),:)',obj.distanceM);
                 sqForm{i} = squareform(d(:,i));
                 sqForm{i} = remove_diagonal(sqForm{i});
             end
@@ -253,10 +261,10 @@ classdef factor_analysis < load_data.load_data
                 dCat{i} = cell2mat(arrayfun(@(x) x{:}(:,i), sqForm, 'UniformOutput', false));
                 alpha(i,1) = stats.factor_analysis.cronbach(dCat{i});
             end
-                disp('*** CROSS-CULTURAL CONSISTENCY OF EMOTION TERMS ***')
-                disp('Running Cronbachs Alpha on pairwise distances vector of each emotion between LANGUAGES')
+            disp('*** CROSS-CULTURAL CONSISTENCY OF EMOTION TERMS ***')
+            disp('Running Cronbachs Alpha on pairwise distances vector of each emotion between LANGUAGES')
             t_alpha = array2table(alpha,'VariableNames',{'CronbachAlpha'},'RowNames',obj.emoLabels);
-                disp(sortrows(t_alpha,1,'descend'));
+            disp(sortrows(t_alpha,1,'descend'));
         end
         function obj = removeEmotionTerms(obj)
             for i=1:length(obj.emoToRemove)
@@ -266,7 +274,7 @@ classdef factor_analysis < load_data.load_data
             obj.emoLabels(:,idx) = [];
         end
         function obj = remove_least_rated_terms(obj)
-        %number of emotions to remove
+            %number of emotions to remove
             removeEmoNum = floor(obj.removalPercentage*length(mean(obj.emo)));
             %remove least rated emotions
             [b,idx] = sort(mean(obj.emo),'descend');
@@ -274,7 +282,7 @@ classdef factor_analysis < load_data.load_data
             if obj.showPlotsAndTextFA==1
                 disp('*** REDUCING EMOTION LIST ***')
                 disp(['Removing ' num2str(obj.removalPercentage*100) '% of' ...
-                      ' least rated emotions'])
+                    ' least rated emotions'])
                 disp(array2table(obj.removedEmotions','VariableNames',{'Emotions removed'}));
             end
             idx = idx(1:end-removeEmoNum);
@@ -306,48 +314,46 @@ classdef factor_analysis < load_data.load_data
         end
         function y = sort_fa_loadings(obj)
             thx = 0.40;
-             for i=1:size(obj.FAcoeff,2)-1
-                 [l,idx{i}] = sort(obj.FAcoeff(:,i),'descend');
-                 idx{i} = idx{i}(l>=thx);
-             end
-             [l,idx{i+1}] = sort(obj.FAcoeff(:,i+1),'descend');
-             idx{i+1} = idx{i+1};
-             idx = unique(cell2mat(idx(:)),'stable');
-             %otherEmo = [1:30]';
-             %otherEmo = setdiff(otherEmo,idx);
-             %idx = [idx',otherEmo'];
-             y{1} = obj.FAcoeff(idx',:);
-             y{2} = obj.emoLabels(idx');
+            for i=1:size(obj.FAcoeff,2)-1
+                [l,idx{i}] = sort(obj.FAcoeff(:,i),'descend');
+                idx{i} = idx{i}(l>=thx);
+            end
+            [l,idx{i+1}] = sort(obj.FAcoeff(:,i+1),'descend');
+            idx{i+1} = idx{i+1};
+            idx = unique(cell2mat(idx(:)),'stable');
+            %otherEmo = [1:30]';
+            %otherEmo = setdiff(otherEmo,idx);
+            %idx = [idx',otherEmo'];
+            y{1} = obj.FAcoeff(idx',:);
+            y{2} = obj.emoLabels(idx');
         end
     end
     methods (Static)
         function a=cronbach(X)
-        %Syntax: a=cronbach(X)
-        %_____________________
-        %
-        % Calculates the Cronbach's alpha of a data set X.
-        %
-        % a is the Cronbach's alpha.
-        % X is the data set.
-        %
-        %
-        % Reference:
-        % Cronbach L J (1951): Coefficient alpha and the internal structure of
-        % tests. Psychometrika 16:297-333
-        %
-        %
-        % Alexandros Leontitsis
-        % Department of Education
-        % University of Ioannina
-        % Ioannina
-        % Greece
-        %
-        % e-mail: leoaleq@yahoo.com
-        % Homepage: http://www.geocities.com/CapeCanaveral/Lab/1421
-        %
-        % June 10, 2005.
-
-
+            %Syntax: a=cronbach(X)
+            %_____________________
+            %
+            % Calculates the Cronbach's alpha of a data set X.
+            %
+            % a is the Cronbach's alpha.
+            % X is the data set.
+            %
+            %
+            % Reference:
+            % Cronbach L J (1951): Coefficient alpha and the internal structure of
+            % tests. Psychometrika 16:297-333
+            %
+            %
+            % Alexandros Leontitsis
+            % Department of Education
+            % University of Ioannina
+            % Ioannina
+            % Greece
+            %
+            % e-mail: leoaleq@yahoo.com
+            % Homepage: http://www.geocities.com/CapeCanaveral/Lab/1421
+            %
+            % June 10, 2005.
             if nargin<1 | isempty(X)==1
                 error('You shoud provide a data set.');
             else
@@ -356,21 +362,79 @@ classdef factor_analysis < load_data.load_data
                     error('Invalid data set.');
                 end
             end
-
-
             % Calculate the number of items
             k=size(X,2); % how many variables
-
             % Calculate the variance of the items' sum
             VarTotal=var(sum(X')); % sum across items, then variance across
-                                   % subjects: high if subjects differ a lot
-
+            % subjects: high if subjects differ a lot
             % Calculate the item variance
             SumVarX=sum(var(X)); % sum across subjects, then variance across
-                                 % items: high if items differ a lot
-
+            % items: high if items differ a lot
             % Calculate the Cronbach's alpha
             a=k/(k-1)*(VarTotal-SumVarX)/VarTotal;
+        end
+        % Velicer's MAP test
+        function nfacts = map(data)
+            r = corr(data);
+            nvars = size(r,1);
+            [eigvect,eigval] = eig(r);
+            eigval = diag(eigval);
+            [eigval,k] = sort(eigval,'descend'); % sort the eigenvalues & get the indicies
+            eigvect = eigvect(:,k); % sort the eigenvectors based on the indicies
+
+            loadings = eigvect * sqrt(diag(eigval,0));
+
+            fm = [(1:nvars); (1:nvars)]';
+            fm(1,2) = (sum(sum(r.^2))-nvars)/(nvars*(nvars-1));
+            fm4 = fm;
+            fm4(1,2) = (sum(sum(r.^4))-nvars)/(nvars*(nvars-1));
+            for m = 1:nvars - 1;
+                biga = loadings(:,1:m);
+                partcov = r - (biga * biga');
+                d = diag (  (1 ./ sqrt(diag(partcov)))   , 0);
+                pr = d * partcov * d;
+                fm(m+1,2)  = (sum(sum(pr.^2))-nvars)/(nvars*(nvars-1));
+                fm4(m+1,2) = (sum(sum(pr.^4))-nvars)/(nvars*(nvars-1));
+            end;
+
+            % identifying the smallest fm value & its location
+            minfm = fm(1,2);
+            nfacts = 0;
+            minfm4 = fm4(1,2);
+            nfacts4 = 0;
+            for s = 1:nvars;
+                fm(s,1)  = s - 1;
+                fm4(s,1) = s - 1;
+                if fm(s,2)  < minfm  ; minfm  = fm(s,2);  nfacts  = s - 1;end;
+                if fm4(s,2) < minfm4 ; minfm4 = fm4(s,2); nfacts4 = s - 1;end;
+            end;
+            disp([' ']);disp([' ']);disp(['Velicer"s Minimum Average Partial (MAP) Test:']);disp([' ']);
+            %disp(['   Eigenvalues ']);
+            %disp([eigval]);
+            disp(['             Average    Average']);
+            disp(['             part r sq  part r 4rth']);
+            disp([fm fm4(:,2)]);
+            disp(['The smallest average squared partial correlation is      ' num2str(minfm)]); disp([' '])
+            disp(['The smallest average 4rth power partial correlation is   ' num2str(minfm4)]); disp([' '])
+            disp(['The Number of Components According to the Original (1976) MAP Test is = ' num2str(nfacts)]); disp([' '])
+            disp(['The Number of Components According to the Revised  (2000) MAP Test is = ' num2str(nfacts4)]); disp([' '])
+            % References
+            % the original MAP test:
+            % Velicer, W. F. (1976). Determining the number of components
+            % from the matrix of partial correlations. Psychometrika, 41, 321-327.
+            % the revised (2000) MAP test i.e., with the partial correlations
+            % raised to the 4rth power (rather than squared):
+            % Velicer, W. F., Eaton, C. A., and Fava, J. L. (2000). Construct
+            % explication through factor or component analysis: A review and
+            % evaluation of alternative procedures for determining the number
+            % of factors or components. Pp. 41-71 in R. D. Goffin and
+            % E. Helmes, eds., Problems and solutions in human assessment.
+            % Boston: Kluwer.
+            % the present programs:
+            % O'Connor, B. P. (2000). SPSS and SAS programs for determining
+            % the number of components using parallel analysis and Velicer's
+            % MAP test. Behavior Research Methods, Instrumentation, and
+            % Computers, 32, 396-402.
         end
     end
 end
