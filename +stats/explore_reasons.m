@@ -19,7 +19,7 @@ classdef explore_reasons < load_data.load_data & stats.factor_analysis
         function obj = do_explore_reasons(obj)
             obj = do_factor_analysis_reasons(obj);
             obj = reasons_plot_means(obj);
-            obj = predict_reasons_from_emotions(obj)
+            obj = predict_reasons_from_emotions(obj);
         end
         function obj = do_factor_analysis_reasons(obj)
             obj.dataTable(any(ismissing(obj.dataTable{:,find(contains(obj.dataTable.Properties.VariableNames, obj.reasonTypesKey))}),2),:) = [];
@@ -50,14 +50,16 @@ classdef explore_reasons < load_data.load_data & stats.factor_analysis
                 [H,P,CI,STATS] = ttest(obj.dataTable{:,musicReasonInd(i)},obj.dataTable{:,trackReasonInd(i)});
                 disp(P);disp(STATS);
             end    
-            
+            c = brewermap(3,'Set2');
             figure
-            barh(1:7,[table_reasons{:,1},table_reasons{:,2}])
+            b = barh(1:7,[table_reasons{:,1},table_reasons{:,2}]);
             set(gca,'FontSize',24,'LineWidth',2)
             set(gca,'YTick',1:7,'YTickLabel',table_reasons{:,4})
             legend(obj.reasonTypes,'Location','best')
             box on
             grid on
+            b(1).FaceColor = c(2,:);
+            b(2).FaceColor = c(3,:);
             title('Reasons for listening (Mean Frequency)')
         end
         function obj = predict_reasons_from_emotions(obj)
