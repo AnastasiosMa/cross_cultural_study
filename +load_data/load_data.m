@@ -3,7 +3,7 @@ classdef load_data
     %example obj = load_data.load_data();obj = do_load_data(obj);
     properties
         dataPath = 'responses_pilot/Music Listening Habits.csv';
-        filterMethod = 'AllResponses' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups', 'BalancedSubgroups_only_natives'
+        filterMethod = 'BalancedSubgroups_only_natives' % Accepted Inputs: 'AllResponses','BalancedSubgroups', 'UnbalancedSubgroups', 'BalancedSubgroups_only_natives'
         translationsPath = 'Translations pilot/Translations_MLH.xlsx'
         dataTable %table to be used in the analysis
         alldataTable %table with data from all responses
@@ -36,7 +36,7 @@ classdef load_data
         exportSubgroups = 0;
         subgroupIdxsPath = []; %'subsampling/subsampling.mat'; %mat file with subgroup indexes
         createExcel = 1; %Create excel file with preprocessed data;
-        showPlotsAndText = 1; %Display plots, tables, and text
+        showPlotsAndText = 0; %Display plots, tables, and text
     end
     methods
         function obj = load_data(obj)
@@ -64,12 +64,15 @@ classdef load_data
             obj = exclude_age(obj);
             if ~strcmpi(obj.filterMethod,'AllResponses')
                 obj = create_groupTable(obj);
+                obj.subgroupIdxsPath = ['subsampling/',obj.filterMethod, '.mat'];
             end
             if obj.showPlotsAndText == 1
                 obj = count_participants(obj);
                 obj = age_distribution(obj);
                 obj = gender_distribution(obj);
-                obj = country_venn_diagrams(obj);
+                if ~strcmpi(obj.filterMethod,'BalancedSubgroups_only_natives')
+                    obj = country_venn_diagrams(obj);
+                end
                 obj = language_consistency(obj);
             end
             if (strcmpi(obj.filterMethod,'BalancedSubgroups')|| strcmpi(obj.filterMethod,'BalancedSubgroups_only_natives'))...
@@ -392,35 +395,35 @@ classdef load_data
             box on
             snapnow
             if ~strcmpi(obj.filterMethod,'AllResponses')
-            %for each country
-            figure
-            groupNum = length(obj.subgroupNames);
-            tcl=tiledlayout(4,ceil(groupNum/4))
-            nexttile(tcl)
-            venn([N/N,N/N,N/N],[length(v1)/N,length(v2)/N,length(v3)/N,length(v4)/N],...
-                'ErrMinMode','TotalError');
-            set(gca,'FontSize',24,'LineWidth',2,'XTick',[],'YTick',[]);
-            title('All participants')
-            axis([-0.8 0.8 -0.8 0.8])
-            box on
-            for i = 1:length(obj.subgroupNames)
-                idx_child = find(strcmpi(obj.groupTable.Country_childhood,obj.subgroupNames{i}));
-                idx_adult = find(strcmpi(obj.groupTable.Country_adulthood,obj.subgroupNames{i}));
-                idx_identity = find(strcmpi(obj.groupTable.Country_identity,obj.subgroupNames{i}));
-                v1 = intersect(idx_child,idx_adult);
-                v2 = intersect(idx_child,idx_identity);
-                v3 = intersect(idx_identity,idx_adult);
-                v4 = intersect(v1,v2);
-                total_length = length(idx_child)+length(idx_adult)+length(idx_identity);
+                %for each country
+                figure
+                groupNum = length(obj.subgroupNames);
+                tcl=tiledlayout(4,ceil(groupNum/4))
                 nexttile(tcl)
-                title(obj.subgroupNames{i})
-                venn([length(idx_child)/total_length,length(idx_adult)/total_length,length(idx_identity)/total_length],...
-                    [length(v1)/total_length,length(v2)/total_length,length(v3)/total_length,length(v4)/total_length],'ErrMinMode','TotalError');
+                venn([N/N,N/N,N/N],[length(v1)/N,length(v2)/N,length(v3)/N,length(v4)/N],...
+                    'ErrMinMode','TotalError');
                 set(gca,'FontSize',24,'LineWidth',2,'XTick',[],'YTick',[]);
-                axis([-0.42 0.42 -0.42 0.42])
+                title('All participants')
+                axis([-0.8 0.8 -0.8 0.8])
                 box on
-            end
-            legend({'Childhood','Adulthood','Identity'},'Location','eastoutside')
+                for i = 1:length(obj.subgroupNames)
+                    idx_child = find(strcmpi(obj.groupTable.Country_childhood,obj.subgroupNames{i}));
+                    idx_adult = find(strcmpi(obj.groupTable.Country_adulthood,obj.subgroupNames{i}));
+                    idx_identity = find(strcmpi(obj.groupTable.Country_identity,obj.subgroupNames{i}));
+                    v1 = intersect(idx_child,idx_adult);
+                    v2 = intersect(idx_child,idx_identity);
+                    v3 = intersect(idx_identity,idx_adult);
+                    v4 = intersect(v1,v2);
+                    total_length = length(idx_child)+length(idx_adult)+length(idx_identity);
+                    nexttile(tcl)
+                    title(obj.subgroupNames{i})
+                    venn([length(idx_child)/total_length,length(idx_adult)/total_length,length(idx_identity)/total_length],...
+                        [length(v1)/total_length,length(v2)/total_length,length(v3)/total_length,length(v4)/total_length],'ErrMinMode','TotalError');
+                    set(gca,'FontSize',24,'LineWidth',2,'XTick',[],'YTick',[]);
+                    axis([-0.42 0.42 -0.42 0.42])
+                    box on
+                end
+                legend({'Childhood','Adulthood','Identity'},'Location','eastoutside')
             end
         end
         function obj = survey_duration(obj)
@@ -619,7 +622,7 @@ classdef load_data
             end
             t_alpha = array2table(alpha,'VariableNames',{'CronbachAlpha'},'RowNames',emoLabels);
             t_alpha = sortrows(t_alpha,1,'ascend');
-            
+
             figure
             subplot(1,2,1)
             h = dendrogram(l,33,'orientation','right','labels',strrep(emoLabels,'_',' '));
@@ -636,26 +639,26 @@ classdef load_data
         end
         function obj = create_groupTable(obj)
             if strcmpi(obj.filterMethod,'BalancedSubgroups_only_natives')
-               %further remove participants that country of childhood, adulthood, identity do not match 
-               natives = []; 
-               for i = 1:height(obj.dataTable)
-                   if [strcmpi(obj.dataTable.Country_childhood(i),obj.dataTable.Country_adulthood(i)) &&...
-                      strcmpi(obj.dataTable.Country_childhood(i),obj.dataTable.Country_identity(i))]
-                   natives = [natives, i];  
-                   end
-               end
-               disp(['GroupTable PRE removal of non natives: ', num2str(height(obj.dataTable))])
-               obj.groupTable = obj.dataTable(natives,:);
-               disp(['GroupTable POST removal of non natives: ', num2str(height(obj.groupTable))])
+                %further remove participants that country of childhood, adulthood, identity do not match
+                natives = [];
+                for i = 1:height(obj.dataTable)
+                    if [strcmpi(obj.dataTable.Country_childhood(i),obj.dataTable.Country_adulthood(i)) &&...
+                            strcmpi(obj.dataTable.Country_childhood(i),obj.dataTable.Country_identity(i))]
+                        natives = [natives, i];
+                    end
+                end
+                disp(['GroupTable PRE removal of non natives: ', num2str(height(obj.dataTable))])
+                obj.groupTable = obj.dataTable(natives,:);
+                disp(['GroupTable POST removal of non natives: ', num2str(height(obj.groupTable))])
             else
-               obj.groupTable = obj.dataTable; 
+                obj.groupTable = obj.dataTable;
             end
             %find groups/countries with minimum N
             g = groupcounts(obj.groupTable,obj.groupingCategory);
             obj.subgroupNames = g.(obj.groupingCategory)(g.GroupCount >= ...
                 obj.subgroupMinNumber);
             obj.groupTable = obj.groupTable(matches(obj.groupTable.(obj.groupingCategory), ...
-                obj.subgroupNames),:); 
+                obj.subgroupNames),:);
         end
         function obj = create_balanced_subgroups(obj)
             %remove Other gender
@@ -674,7 +677,6 @@ classdef load_data
             %Start repetitions to find optimal subgroups minimizing
             %AGE-GENDER differences
             ii = 1;
-            obj.subgroupIdxsPath = ['subsampling/',obj.filterMethod, '.mat'];
             if exist(obj.subgroupIdxsPath) ==2
                 load(obj.subgroupIdxsPath);
                 genderMetricMin = subsampling.genderMetric;
