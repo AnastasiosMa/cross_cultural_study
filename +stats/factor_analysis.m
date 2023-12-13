@@ -57,6 +57,10 @@ classdef factor_analysis < load_data.load_data
                 obj = velicers_map_test(obj);
             end
             obj = fa(obj);
+            if ~strcmpi(obj.filterMethod,'AllResponses') && obj.showPlotsAndTextFA == 1
+                obj = f_scores_between_groups(obj);
+                %obj = cronbach_categories(obj);
+            end
             % if ~strcmpi(obj.filterMethod,'AllResponses')
             %     obj = anova_fa(obj);
             % end
@@ -171,6 +175,21 @@ classdef factor_analysis < load_data.load_data
                 % xtickangle(45);
                 % snapnow
             end
+        end
+        function obj = f_scores_between_groups(obj)
+           disp(obj.subgroupNames) 
+           for i  = 1:length(obj.subgroupNames)
+                fs_mean(i,:) = nanmean(obj.FAScores(strcmpi(obj.dataTable{:,'Country_childhood'},obj.subgroupNames{i}),:));
+                fs_std(i,:) = nanstd(obj.FAScores(strcmpi(obj.dataTable{:,'Country_childhood'},obj.subgroupNames{i}),:));     
+           end
+           figure
+           bar(fs_mean)
+           set(gca,'FontSize',24)
+           set(gca,'XTickLabel',obj.subgroupNames)
+           grid on 
+           box on
+           legend(obj.factorNames,'Location','best')
+
         end
         function obj = anova_fa(obj)
             [groupings,groupNames] = findgroups(obj.groupTable(:,obj.groupingCategory));
