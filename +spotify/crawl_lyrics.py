@@ -47,18 +47,30 @@ def request_song_info(song_title, artist_name):
 
     return response
 #%% Retrieve genius SEARCH html
-for i in len(range(artists)):
-    artist = artists[i]
-    track = tracks[i]
+lyrics = []
+for i in range(len(artists)):
+    print(i)
+    print(artists[i] + tracks[i])
     response = request_song_info(tracks[i], artists[i])
     json_response = response.json()
-    remote_song_info = None
+    remote_song_url = None
     for hit in json_response['response']['hits']:
         if artists[i].lower() in hit['result']['primary_artist']['name'].lower():
-            remote_song_info = hit
             remote_song_url = hit['result']['url']                
             break
     # Retrieve genius TRACK html
-    search_html = requests.get(remote_song_url)
-    html_soup = BeautifulSoup(search_html.text, 'html.parser')
-    html_soup.find('div',class='Lyrics__Container-sc-1ynbvzw-1 kUgSbL')
+    if remote_song_url:
+        print('Lyrics found')
+        lyrics = ''
+        search_html = requests.get(remote_song_url)
+        html_soup = BeautifulSoup(search_html.text, 'html.parser')
+        lyrics_html = html_soup.find_all('div', class_='Lyrics__Container-sc-1ynbvzw-1 kUgSbL')
+        for part in lyrics_html:
+            lyric_lines = part.find_all()
+            for line_part in lyric_lines:
+                if len(line_part.get_text())>0:
+                    lyrics = lyrics + line_part.get_text(separator='\n') + '\n'
+        lyrics = re.sub(r'\[.*\]', '\n', lyrics)
+        with open('data_lyrics/lyrics/'+artists[i]+'_'+tracks[i]+'.txt', 'w') as f:
+                    f.write(lyrics)
+            
