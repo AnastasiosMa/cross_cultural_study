@@ -12,12 +12,21 @@ import pandas as pd
 import numpy as np
 from bs4 import BeautifulSoup
 from lyricsgenius import Genius
+import time
 
 data_dir = 'data_lyrics/ccsdata_complete_clean.xlsx'
 data = pd.read_excel(data_dir)
 
-artists = list(data['Artist'])
-tracks = list(data['Track'])
+artists = data['Artist']
+tracks = data['Track']
+
+track_artist =list(tracks+artists)
+unique_track_artist = set(track_artist)
+track_artist_indexes = [track_artist.index(x) for x in unique_track_artist] #find unique indexes
+print('Unique track_artists: {}'.format(len(track_artist_indexes)))
+
+tracks = list(tracks.iloc[track_artist_indexes])
+artists = list(artists.iloc[track_artist_indexes])
 #%% genius api authentication
 with open('+spotify/genius_api_authentication.txt') as f:
     credentials = f.readlines()
@@ -46,31 +55,57 @@ def request_song_info(song_title, artist_name):
     response = requests.get(search_url, headers=headers)
 
     return response
+
+def scrap_song_url(song_id):
+    headers = {'Authorization': 'Bearer ' + defaults['request']['token']}
+    page = requests.get('https://api.genius.com/songs/' + str(song_id), headers=headers)
+    #page = requests.get(url, headers=headers)
+    html_soup = BeautifulSoup(page.text, 'html.parser')
+    while html_soup.find('div', class_='lyrics')is None:
+            headers = {'Authorization': 'Bearer ' + defaults['request']['token']}
+     #       page = requests.get(url, headers=headers)
+            page = requests.get('https://api.genius.com/songs/' + str(song_id), headers=headers)
+            html_soup = BeautifulSoup(page.text, 'html.parser')
+    #[h.extract() for h in html('script')]
+    lyrics_temp = html_soup.find('div', class_='lyrics').get_text()
+
+    return lyrics_temp
 #%% Retrieve genius SEARCH html
-lyrics = []
-for i in range(len(artists)):
+retrieved_tracks = []
+retrieved_artists = []
+mismatch = []
+instrumental = []
+#%%
+for i in range(633,len(artists)):
+    if i%20==0:
+       genius = Genius(access_token)  
     print(i)
     print(artists[i] + tracks[i])
-    response = request_song_info(tracks[i], artists[i])
-    json_response = response.json()
-    remote_song_url = None
-    for hit in json_response['response']['hits']:
-        if artists[i].lower() in hit['result']['primary_artist']['name'].lower():
-            remote_song_url = hit['result']['url']                
-            break
-    # Retrieve genius TRACK html
-    if remote_song_url:
+    pausing=0
+    while pausing ==1:
+        try:
+            song = genius.search_song(tracks[i], artists[i])
+            pausing=1
+        except:
+            time.sleep(10)
+            print('pausing time')
+    if song:
         print('Lyrics found')
-        lyrics = ''
-        search_html = requests.get(remote_song_url)
-        html_soup = BeautifulSoup(search_html.text, 'html.parser')
-        lyrics_html = html_soup.find_all('div', class_='Lyrics__Container-sc-1ynbvzw-1 kUgSbL')
-        for part in lyrics_html:
-            lyric_lines = part.find_all()
-            for line_part in lyric_lines:
-                if len(line_part.get_text())>0:
-                    lyrics = lyrics + line_part.get_text(separator='\n') + '\n'
+        if artists[i].lower() in song.artist.lower() and \
+            tracks[i].lower() in song.title.lower():
+                mismatch.append(0)
+        else:
+            mismatch.append(1)
+        retrieved_artists.append(song.artist)
+        retrieved_tracks.append(song.title)
+        instrumental.append(0)
+        lyrics = song.lyrics
         lyrics = re.sub(r'\[.*\]', '\n', lyrics)
         with open('data_lyrics/lyrics/'+artists[i]+'_'+tracks[i]+'.txt', 'w') as f:
                     f.write(lyrics)
-            
+    else:
+        retrieved_tracks.append('')
+        retrieved_artists.append('')
+        instrumental.append(1)
+        mismatch.append(0)
+    time.sleep(2)        
