@@ -76,19 +76,18 @@ retrieved_artists = []
 mismatch = []
 instrumental = []
 #%%
-for i in range(633,len(artists)):
-    if i%20==0:
+for i in range(0,len(artists)):
+    if i%3==0:
        genius = Genius(access_token)  
     print(i)
     print(artists[i] + tracks[i])
-    pausing=0
-    while pausing ==1:
+    while True:
         try:
             song = genius.search_song(tracks[i], artists[i])
-            pausing=1
+            break
         except:
-            time.sleep(10)
-            print('pausing time')
+            print('TIMEOUT ERROR')
+            pass
     if song:
         print('Lyrics found')
         if artists[i].lower() in song.artist.lower() and \
@@ -96,16 +95,22 @@ for i in range(633,len(artists)):
                 mismatch.append(0)
         else:
             mismatch.append(1)
+        song.artist = re.sub('/', ' ', song.artist)
+        song.title = re.sub('/', ' ', song.title)
         retrieved_artists.append(song.artist)
         retrieved_tracks.append(song.title)
         instrumental.append(0)
         lyrics = song.lyrics
         lyrics = re.sub(r'\[.*\]', '\n', lyrics)
-        with open('data_lyrics/lyrics/'+artists[i]+'_'+tracks[i]+'.txt', 'w') as f:
+        with open('data_lyrics/lyrics/'+song.artist+'_'+song.title+'.txt', 'w') as f:
                     f.write(lyrics)
     else:
-        retrieved_tracks.append('')
+        retrieved_tracks.append(' ')
         retrieved_artists.append('')
         instrumental.append(1)
         mismatch.append(0)
-    time.sleep(2)        
+    time.sleep(5)        
+lyrics_data = {'initial_artists':artists,'initial_tracks':tracks,'retrieved_artists':retrieved_artists,'retrieved_tracks':retrieved_tracks,'mismatch':mismatch,
+               'instrumental':instrumental}
+lyrics_data=pd.DataFrame(lyrics_data)
+lyrics_data.to_csv('data_lyrics/retrieval_check.csv')
