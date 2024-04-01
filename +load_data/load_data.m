@@ -388,7 +388,7 @@ classdef load_data
             N = height(obj.dataTable);
             figure
             venn([N/N,N/N,N/N],[length(v1)/N,length(v2)/N,length(v3)/N,length(v4)/N],...
-                'ErrMinMode','ChowRodgers');
+                'ErrMinMode','TotalError');
             legend({'Childhood','Adulthood','Identity'},'Location','best')
             set(gca,'FontSize',24,'LineWidth',2,'XTick',[],'YTick',[]);
             %title('Venn Diagram of Country overlap')
