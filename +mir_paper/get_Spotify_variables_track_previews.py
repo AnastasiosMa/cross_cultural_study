@@ -86,8 +86,9 @@ def find_spotify_id(track_name, artist_name):
         modified = 1
     return track_id,modified
 #%% Extract SPOTIFY IDS from track-artist
-data = pd.read_csv('ccsData.csv')
-track_info = data.loc[:,['Track','Artist']].dropna()
+data = pd.read_excel('+mir_paper/ccsDataCorrected.xlsx')
+track_info = data.loc[:,['Corrected_Track','Corrected_Artist']].dropna().astype('str')
+track_info.columns = ['Track','Artist']
 track_artist =list(track_info.Track+track_info.Artist)
 unique_track_artist = set(track_artist)
 track_artist_indexes = [track_artist.index(x) for x in unique_track_artist] #find unique indexes
@@ -120,22 +121,19 @@ colnames = list(pd.DataFrame(list((get_Spotify_variables('6QSeaiYpD8rXMCS0CIrIJc
 colnames.extend(['AudioAvailable'])
 features = pd.DataFrame(columns=colnames)
 conn = Connection(_id, _secret) 
-for i in range(len(track_info.shape[0])):
-    if i%300==0:
+counter = 0
+for index,rows in track_info.iterrows():
+    if counter%300==0:
        conn = Connection(_id, _secret) 
-    print(i)
+    print(counter)
     try:
-        features.loc[i,:]=get_Spotify_variables(track_info.spotify_id[i])        
+        features.loc[index,:]=get_Spotify_variables(rows.spotify_id)        
     except:
         print('Error')
-        faulty_ids.append(i)
+    counter +=1
 
-#combine existing and newly extracted features
-if pathExists:
-   features = pd.concat([existing_features,features]) 
-
-features=features.reset_index()
-features.index = range(features.shape[0])     
+#features=features.reset_index()
+#features.index = range(features.shape[0])     
 #features.to_csv('data/phase2/spotify_features/Spotify_features.csv',encoding='UTF8',sep=';',index=0)       
 #%% GET PREVIEWS FUNCTIONS
 def download_track(track_id,artist,name,save_loc,url):
@@ -149,33 +147,6 @@ def download_track(track_id,artist,name,save_loc,url):
                         f.write(r.content)
     else:
            print("file already exists:{}-{}".format(artist, name))
-# Search for preview through v1/search
-def missing_preview(track_name, artist_name,original_track_id,save_loc):
-    """
-    If preview is missing try to find other versions of the track that might have preview
-    """
-    if artist_name:
-       query_track = dict(q = track_name + ' ' + artist_name, type = "track", limit = 50) 
-    else:
-       query_track = dict(q = track_name, type = "track", limit = 50)
-       
-    found_preview = 0
-    search = conn.query_get('/v1/search/',query_track)
-    for i in range(len(search['tracks']['items'])):
-        track_id = search['tracks']['items'][i]['id']
-        artist = search['tracks']['items'][i]['artists'][0]['name']
-        name = search['tracks']['items'][i]['name']
-        if search['tracks']['items'][i]["preview_url"] in track.keys(): #check if key exists
-            url = search['tracks']['items'][i]["preview_url"]
-        else: 
-            url = []
-        if url and artist_name.lower()==artist.lower() and track_name.lower()==name.lower():
-           download_track(track_id,artist,name,save_loc,url)
-           found_preview = 1
-           original_track_id = track_id
-           break
-         
-    return[found_preview,original_track_id]
 #%% GET PREVIEWS
 conn = Connection(_id, _secret)
 #track_ids = list(set(track_ids)) #store unique ID's
@@ -183,39 +154,25 @@ replaced_audio = 0
 
 #for i in features.index:
     # get track preview_urls
-for i in range(29584,len(spotify_ids)):
+counter = 0
+for index,rows in features.iterrows():
     #time.sleep(1)
-    if i%150==0:
+    if counter%300==0:
        conn = Connection(_id, _secret) 
-    track = conn.query_get('/v1/tracks/' + features.loc[i,'trackID'])
-    print(i)
+    track = conn.query_get('/v1/tracks/' + rows.trackID)
+    print(counter)
     if not 'error' in dict.keys(track):
-         track_name = track["name"]
-         #name = re.sub("\W", "_", name)
-         artist_name = track["artists"][0]["name"]
-         #artist = re.sub("\W", "_", artist)
          if 'preview_url' in track.keys():
              url = track["preview_url"]
-             found = 0
          else: 
              url = []
-             #print("Searching url for {}-{}".format(artist_name, track_name))
          if url:
-            download_track(features['trackID'][i],artist_name,track_name,save_loc,url)
-            found = 1
+            download_track(rows.trackID,rows.artistName,rows.trackName,save_loc,url)
+            features.loc[index,'AudioAvailable'] = 0
          else:
-              print("could not find url with id. Searching with trackname_artist")
-              res = missing_preview(track_name,artist_name,features['trackID'][i],save_loc)  
-              found = res[0]
-              if found:
-                  features.loc[i,'trackID'] = res[1]
-                  features.loc[i,'danceability':'trackID']=get_Spotify_variables(features.loc[i,'trackID'])            
-                  replaced_audio = replaced_audio + 1
-         if found:              
-            features.loc[i,'AudioAvailable'] = 1
-         else:
-           print("track is missing")
-           features.loc[i,'AudioAvailable'] = 0
+            print("track is missing")
+            print("Missing url for {}-{}".format(rows.artistName, rows.trackName))
+            features.loc[index,'AudioAvailable'] = 0
     else:
         print("Invalid ID")
 
