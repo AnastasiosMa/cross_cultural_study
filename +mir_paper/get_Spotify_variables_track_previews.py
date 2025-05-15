@@ -67,35 +67,33 @@ def get_Spotify_variables(track_id):
            del spotify_variables[i]
     return(spotify_variables)
 # Search for IDs through v1/search
-def find_spotify_id(track_name, artist_name):
-    modified=0
+def find_spotify_id(track_name, artist_name,correct_retrieval):
     track_id=[]
     if isinstance(artist_name, (str)):
        query_track = dict(q = track_name + ' ' + artist_name, type = "track", limit = 50) 
     else:
        query_track = dict(q = track_name, type = "track", limit = 50)       
     search = conn.query_get('/v1/search/',query_track)
-    for i in range(len(search['tracks']['items'])):
-        artist = search['tracks']['items'][i]['artists'][0]['name']
-        name = search['tracks']['items'][i]['name']
-        if artist_name.lower()==artist.lower() and track_name.lower()==name.lower():
-           track_id = search['tracks']['items'][i]['id'] 
-           break
-    if not track_id:
+    if correct_retrieval=='1.0':
         track_id = search['tracks']['items'][0]['id']
-        modified = 1
-    return track_id,modified
+    else:
+        for i in range(len(search['tracks']['items'])):
+            artist = search['tracks']['items'][i]['artists'][0]['name']
+            name = search['tracks']['items'][i]['name']
+            if artist_name.lower()==artist.lower() and track_name.lower()==name.lower():
+               track_id = search['tracks']['items'][i]['id'] 
+               break
+    return track_id
 #%% Extract SPOTIFY IDS from track-artist
-data = pd.read_excel('+mir_paper/ccsDataCorrected.xlsx')
-track_info = data.loc[:,['Corrected_Track','Corrected_Artist']].dropna().astype('str')
-track_info.columns = ['Track','Artist']
-track_artist =list(track_info.Track+track_info.Artist)
-unique_track_artist = set(track_artist)
-track_artist_indexes = [track_artist.index(x) for x in unique_track_artist] #find unique indexes
-print('Unique track_artists: {}'.format(len(track_artist_indexes)))
-track_info=track_info.iloc[track_artist_indexes,:]
+data = pd.read_excel('+mir_paper/data/spotify retrieval corrections.xlsx')
+track_info = data.loc[:,['Original Track','Original Artist','Correct_Retrieval']].astype('str')
+track_info.columns = ['Track','Artist','Correct_Retrieval']
+#track_artist =list(track_info.Track+track_info.Artist)
+#unique_track_artist = set(track_artist)
+#track_artist_indexes = [track_artist.index(x) for x in unique_track_artist] #find unique indexes
+#print('Unique track_artists: {}'.format(len(track_artist_indexes)))
+#track_info=track_info.iloc[track_artist_indexes,:]
 track_info.spotify_id = ''
-track_info.modified = 0
 #%%Find spotify id
 faulty_tracks = []
 conn = Connection(_id, _secret)
@@ -105,10 +103,9 @@ for index,rows in track_info.iterrows():
        conn = Connection(_id, _secret) 
     print(counter)
     try: 
-        track_id, modified = find_spotify_id(rows.Track, rows.Artist)
+        track_id = find_spotify_id(rows.Track, rows.Artist,rows.Correct_Retrieval)
         if track_id:
             track_info.loc[index,'spotify_id'] = track_id
-            track_info.loc[index,'modified'] = modified
             print(track_id)
         else: 
             print('ID Not found. Track: {}, Artist: {}'.format(rows.Track, rows.Artist))
@@ -134,7 +131,9 @@ for index,rows in track_info.iterrows():
 
 #features=features.reset_index()
 #features.index = range(features.shape[0])     
-#features.to_csv('data/phase2/spotify_features/Spotify_features.csv',encoding='UTF8',sep=';',index=0)       
+#features.to_csv('+mir_paper/data/spotify_features.csv',encoding='UTF8',sep=';',index=1)
+#track_info.to_csv('+mir_paper/data/track_info.csv',encoding='UTF8',sep=';',index=1)
+#match_spot=track_info[['Track','Artist']].join(features[['trackName','artistName']],how='inner')       
 #%% GET PREVIEWS FUNCTIONS
 def download_track(track_id,artist,name,save_loc,url):
     os.makedirs(save_loc, exist_ok=True)
@@ -149,11 +148,6 @@ def download_track(track_id,artist,name,save_loc,url):
            print("file already exists:{}-{}".format(artist, name))
 #%% GET PREVIEWS
 conn = Connection(_id, _secret)
-#track_ids = list(set(track_ids)) #store unique ID's
-replaced_audio = 0
-
-#for i in features.index:
-    # get track preview_urls
 counter = 0
 for index,rows in features.iterrows():
     #time.sleep(1)
@@ -168,13 +162,15 @@ for index,rows in features.iterrows():
              url = []
          if url:
             download_track(rows.trackID,rows.artistName,rows.trackName,save_loc,url)
-            features.loc[index,'AudioAvailable'] = 0
+            features.loc[index,'AudioAvailable'] = 1
          else:
             print("track is missing")
             print("Missing url for {}-{}".format(rows.artistName, rows.trackName))
             features.loc[index,'AudioAvailable'] = 0
     else:
         print("Invalid ID")
+        features.loc[index,'AudioAvailable'] = 0
+    counter +=1
 
 import math        
 for i in range(features.shape[0]):
